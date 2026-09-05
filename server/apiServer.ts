@@ -665,61 +665,59 @@ export function vidyaMitraApiPlugin(): Plugin {
     let keys: ApiKeys = {} as ApiKeys;
     let resolvedEnv: Record<string, string> = {};
 
-    return {
-        name: 'vidyamitra-api',
+    function initEnvAndKeys(config?: any) {
+        if (keys.GEMINI_API_KEY || Object.keys(keys).length > 0) return;
+        const loaded = config ? loadEnv(config.mode || 'production', config.root || process.cwd(), '') : {};
+        const env = { ...process.env, ...loaded };
+        resolvedEnv = env as Record<string, string>;
+        keys = {
+            GEMINI_API_KEY: env.GEMINI_API_KEY || env.VITE_GEMINI_API_KEY || '',
+            GEMINI_IMAGE_API_KEY: env.GEMINI_IMAGE_API_KEY || env.GEMINI_API_KEY || env.VITE_GEMINI_API_KEY || '',
+            YOUTUBE_API_KEY: env.YOUTUBE_API_KEY || '',
+            PEXELS_API_KEY: env.PEXELS_API_KEY || '',
+            NEWS_API_KEY: env.NEWS_API_KEY || '',
+            EXCHANGE_RATE_API_KEY: env.EXCHANGE_RATE_API_KEY || '',
+            OPENAI_API_KEY: env.OPENAI_API_KEY || '',
+            // Judge0 – self-hosted AWS instance (primary)
+            JUDGE0_HOST: env.JUDGE0_HOST || 'http://54.234.23.242:2358',
+            // Judge0 – RapidAPI fallback
+            JUDGE0_RAPIDAPI_KEY: env.JUDGE0_RAPIDAPI_KEY || env.VITE_JUDGE0_API_KEY || '',
+            JUDGE0_RAPIDAPI_HOST: env.JUDGE0_RAPIDAPI_HOST || env.VITE_JUDGE0_API_HOST || 'judge029.p.rapidapi.com',
+            JUDGE0_RAPIDAPI_URL: env.JUDGE0_RAPIDAPI_URL || env.VITE_JUDGE0_BASE_URL || 'https://judge029.p.rapidapi.com',
+            GROQ_API_KEY: env.GROQ_API_KEY || '',
+            ELEVENLABS_API_KEY: env.ELEVENLABS_API_KEY || '',
+            JDOODLE_CLIENT_ID: env.JDOODLE_CLIENT_ID || '',
+            JDOODLE_CLIENT_SECRET: env.JDOODLE_CLIENT_SECRET || '',
+        };
 
-        async configResolved(config) {
-            // AWS SSM Parameter Store disabled — using .env directly
-            // To re-enable: import loadEnvWithSecrets and replace loadEnv(...) with await loadEnvWithSecrets(baseEnv)
-            const env = loadEnv(config.mode, config.root, '');
-            resolvedEnv = env;
-            keys = {
-                GEMINI_API_KEY: env.GEMINI_API_KEY || env.VITE_GEMINI_API_KEY || '',
-                GEMINI_IMAGE_API_KEY: env.GEMINI_IMAGE_API_KEY || env.GEMINI_API_KEY || env.VITE_GEMINI_API_KEY || '',
-                YOUTUBE_API_KEY: env.YOUTUBE_API_KEY || '',
-                PEXELS_API_KEY: env.PEXELS_API_KEY || '',
-                NEWS_API_KEY: env.NEWS_API_KEY || '',
-                EXCHANGE_RATE_API_KEY: env.EXCHANGE_RATE_API_KEY || '',
-                OPENAI_API_KEY: env.OPENAI_API_KEY || '',
-                // Judge0 – self-hosted AWS instance (primary)
-                JUDGE0_HOST: env.JUDGE0_HOST || 'http://54.234.23.242:2358',
-                // Judge0 – RapidAPI fallback
-                JUDGE0_RAPIDAPI_KEY: env.JUDGE0_RAPIDAPI_KEY || env.VITE_JUDGE0_API_KEY || '',
-                JUDGE0_RAPIDAPI_HOST: env.JUDGE0_RAPIDAPI_HOST || env.VITE_JUDGE0_API_HOST || 'judge029.p.rapidapi.com',
-                JUDGE0_RAPIDAPI_URL: env.JUDGE0_RAPIDAPI_URL || env.VITE_JUDGE0_BASE_URL || 'https://judge029.p.rapidapi.com',
-                GROQ_API_KEY: env.GROQ_API_KEY || '',
-                ELEVENLABS_API_KEY: env.ELEVENLABS_API_KEY || '',
-                JDOODLE_CLIENT_ID: env.JDOODLE_CLIENT_ID || '',
-                JDOODLE_CLIENT_SECRET: env.JDOODLE_CLIENT_SECRET || '',
-            };
+        const dbType = (env.DB_TYPE || 'sqlite').toLowerCase();
+        if (dbType === 'sqlite') {
+            getDb(); // Initialize SQLite schema + seed data
+        } else {
+            console.log(`✅ Database mode: SUPABASE (${env.SUPABASE_URL || 'configured from env'})`);
+        }
 
-            const dbType = (env.DB_TYPE || 'sqlite').toLowerCase();
-            if (dbType === 'sqlite') {
-                getDb(); // Initialize SQLite schema + seed data
-            } else {
-                console.log(`✅ Database mode: SUPABASE (${env.SUPABASE_URL})`);
-            }
+        console.log('✅ VidyaMitra API server initialized');
+        console.log('  Gemini:', keys.GEMINI_API_KEY ? '✅' : '⚠️  (not configured, using Groq)');
+        console.log('  YouTube:', keys.YOUTUBE_API_KEY ? '✅' : '❌');
+        console.log('  Pexels:', keys.PEXELS_API_KEY ? '✅' : '❌');
+        console.log('  News:', keys.NEWS_API_KEY ? '✅' : '❌');
+        console.log('  Exchange:', keys.EXCHANGE_RATE_API_KEY ? '✅' : '❌');
+        console.log('  Groq:', keys.GROQ_API_KEY ? '✅' : '❌');
+        console.log('  ElevenLabs:', keys.ELEVENLABS_API_KEY ? '✅' : '❌');
+        console.log('  JDoodle:', keys.JDOODLE_CLIENT_ID ? '✅' : '⚠️  (not configured — non-JS code execution disabled)');
+        console.log('  Judge0 (AWS):', keys.JUDGE0_HOST ? `✅ ${keys.JUDGE0_HOST}` : '❌');
+        console.log('  Judge0 (RapidAPI fallback):', keys.JUDGE0_RAPIDAPI_KEY ? '✅' : '❌');
+        const execModeLog = (env.CODE_EXECUTION_MODE || 'auto').toUpperCase();
+        const execEmoji = execModeLog === 'LOCAL' ? '🏠' : execModeLog === 'RAPIDAPI' ? '⚡' : '🔄';
+        console.log(`  Code Execution Mode: ${execEmoji} ${execModeLog}`);
 
-            console.log('✅ VidyaMitra API server initialized');
-            console.log('  Gemini:', keys.GEMINI_API_KEY ? '✅' : '⚠️  (not configured, using Groq)');
-            console.log('  YouTube:', keys.YOUTUBE_API_KEY ? '✅' : '❌');
-            console.log('  Pexels:', keys.PEXELS_API_KEY ? '✅' : '❌');
-            console.log('  News:', keys.NEWS_API_KEY ? '✅' : '❌');
-            console.log('  Exchange:', keys.EXCHANGE_RATE_API_KEY ? '✅' : '❌');
-            console.log('  Groq:', keys.GROQ_API_KEY ? '✅' : '❌');
-            console.log('  ElevenLabs:', keys.ELEVENLABS_API_KEY ? '✅' : '❌');
-            console.log('  JDoodle:', keys.JDOODLE_CLIENT_ID ? '✅' : '⚠️  (not configured — non-JS code execution disabled)');
-            console.log('  Judge0 (AWS):', keys.JUDGE0_HOST ? `✅ ${keys.JUDGE0_HOST}` : '❌');
-            console.log('  Judge0 (RapidAPI fallback):', keys.JUDGE0_RAPIDAPI_KEY ? '✅' : '❌');
-            const execModeLog = (env.CODE_EXECUTION_MODE || 'auto').toUpperCase();
-            const execEmoji = execModeLog === 'LOCAL' ? '🏠' : execModeLog === 'RAPIDAPI' ? '⚡' : '🔄';
-            console.log(`  Code Execution Mode: ${execEmoji} ${execModeLog}`);
+        // ── AWS Services DISABLED ──────────────────
+        console.log('  ℹ️  AWS services disabled — using local fallbacks (TF.js proctoring, PDF.js resume parsing)');
+    }
 
-            // ── AWS Services DISABLED ──────────────────
-            console.log('  ℹ️  AWS services disabled — using local fallbacks (TF.js proctoring, PDF.js resume parsing)');
-        },
+    function setupApiRoutes(server: { middlewares: any }) {
 
-        configureServer(server: ViteDevServer) {
             // CORS preflight
             server.middlewares.use((req: IncomingMessage, res: ServerResponse, next: () => void) => {
                 if (req.url?.startsWith('/api/') && req.method === 'OPTIONS') {
@@ -4554,6 +4552,24 @@ MENTOR GUIDELINES:
             });
 
             // NOTE: OpenAI proxy routes are registered separately via vite.config.ts
-        },
-    };
-}
+        }
+
+        return {
+            name: 'vidyamitra-api',
+
+            async configResolved(config) {
+                initEnvAndKeys(config);
+            },
+
+            configureServer(server: ViteDevServer) {
+                initEnvAndKeys();
+                setupApiRoutes(server);
+            },
+
+            configurePreviewServer(server: any) {
+                initEnvAndKeys();
+                setupApiRoutes(server);
+            },
+        };
+    }
+

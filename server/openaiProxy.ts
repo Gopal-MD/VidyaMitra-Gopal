@@ -573,10 +573,10 @@ export function openaiProxyPlugin(): Plugin {
 
     async configResolved(config) {
       // Load env vars (including non-VITE_ prefixed ones) for the server
-      const baseEnv = loadEnv(config.mode, config.root, '');
+      const baseEnv = { ...process.env, ...loadEnv(config.mode, config.root, '') };
       // Load secrets from AWS Secrets Manager (if enabled) or fallback to .env
       const env = await loadEnvWithSecrets(baseEnv);
-      apiKey = env.OPENAI_API_KEY || '';
+      apiKey = env.OPENAI_API_KEY || process.env.OPENAI_API_KEY || '';
 
       if (apiKey) {
         console.log('✅ OpenAI API key loaded (server-side only, not exposed to browser)');
@@ -586,6 +586,14 @@ export function openaiProxyPlugin(): Plugin {
     },
 
     configureServer(server: ViteDevServer) {
+      this.setupRoutes(server);
+    },
+
+    configurePreviewServer(server: any) {
+      this.setupRoutes(server);
+    },
+
+    setupRoutes(server: { middlewares: any }) {
       // Handle CORS preflight
       server.middlewares.use('/api/openai', (req: IncomingMessage, res: ServerResponse, next: () => void) => {
         if (req.method === 'OPTIONS') {

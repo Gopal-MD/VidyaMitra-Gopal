@@ -13,28 +13,33 @@ import { openaiProxyPlugin } from "./server/openaiProxy";
 function videosStaticPlugin() {
   const videosDir = path.resolve(__dirname, "videos");
   const urlPrefix = "/screenshots/";
+  const staticMiddleware = (req: any, res: any, next: any) => {
+    if (!req.url?.startsWith(urlPrefix)) return next();
+    const file = req.url.slice(urlPrefix.length).split("?")[0];
+    const filePath = path.join(videosDir, decodeURIComponent(file));
+    if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+      const ext = path.extname(filePath).toLowerCase();
+      const mime: Record<string, string> = {
+        ".png": "image/png",
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".mp4": "video/mp4",
+        ".webp": "image/webp",
+      };
+      res.setHeader("Content-Type", mime[ext] || "application/octet-stream");
+      fs.createReadStream(filePath).pipe(res);
+    } else {
+      next();
+    }
+  };
+
   return {
     name: "videos-static",
     configureServer(server: any) {
-      server.middlewares.use((req: any, res: any, next: any) => {
-        if (!req.url?.startsWith(urlPrefix)) return next();
-        const file = req.url.slice(urlPrefix.length).split("?")[0];
-        const filePath = path.join(videosDir, decodeURIComponent(file));
-        if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
-          const ext = path.extname(filePath).toLowerCase();
-          const mime: Record<string, string> = {
-            ".png": "image/png",
-            ".jpg": "image/jpeg",
-            ".jpeg": "image/jpeg",
-            ".mp4": "video/mp4",
-            ".webp": "image/webp",
-          };
-          res.setHeader("Content-Type", mime[ext] || "application/octet-stream");
-          fs.createReadStream(filePath).pipe(res);
-        } else {
-          next();
-        }
-      });
+      server.middlewares.use(staticMiddleware);
+    },
+    configurePreviewServer(server: any) {
+      server.middlewares.use(staticMiddleware);
     },
   };
 }
@@ -44,6 +49,11 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+  },
+  preview: {
+    host: "0.0.0.0",
+    port: process.env.PORT ? parseInt(process.env.PORT) : 8080,
+    strictPort: true,
   },
   plugins: [
     react(),
