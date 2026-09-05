@@ -1006,7 +1006,7 @@ const AIPredictionsTab = () => {
       <Card>
         <CardHeader>
           <CardTitle>AI Skill Predictions</CardTitle>
-          <CardDescription>Powered by Groq LLM (llama-3.3-70b)</CardDescription>
+          <CardDescription>Powered by Groq LLM (GPT-OSS / Qwen)</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">

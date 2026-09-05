@@ -274,7 +274,7 @@ async function callGroq(apiKey: string, prompt: string): Promise<{ success: bool
     ].filter(Boolean) as string[];
 
     const uniqueKeys = Array.from(new Set(groqKeys));
-    const models = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant'];
+    const models = ['openai/gpt-oss-120b', 'openai/gpt-oss-20b', 'qwen/qwen3.8-27b', 'qwen/qwen3.6-27b'];
 
     for (const key of (uniqueKeys.length > 0 ? uniqueKeys : [apiKey])) {
         for (const model of models) {
@@ -1688,7 +1688,7 @@ export function vidyaMitraApiPlugin(): Plugin {
                     if (allKeys.length === 0) return sendJson(res, 503, { error: 'No Groq API keys configured' });
 
                     let lastStatus = 500;
-                    const models = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant'];
+                    const models = ['openai/gpt-oss-120b', 'openai/gpt-oss-20b', 'qwen/qwen3.8-27b', 'qwen/qwen3.6-27b'];
 
                     for (const key of allKeys) {
                         for (const model of models) {
@@ -2544,34 +2544,38 @@ Return valid JSON with this structure:
 
 Return ONLY valid JSON.`;
 
+                            const planModels = ['openai/gpt-oss-120b', 'openai/gpt-oss-20b', 'qwen/qwen3.8-27b', 'qwen/qwen3.6-27b'];
+                            planLoop:
                             for (const key of uniqueGroqKeys) {
-                                try {
-                                    const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-                                        method: 'POST',
-                                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
-                                        body: JSON.stringify({
-                                            model: 'llama-3.3-70b-versatile',
-                                            messages: [
-                                                { role: 'system', content: 'You are an expert technical career mentor. Output ONLY clean, valid JSON.' },
-                                                { role: 'user', content: planPrompt }
-                                            ],
-                                            temperature: 0.2,
-                                            max_tokens: 1500,
-                                        }),
-                                    });
+                                for (const model of planModels) {
+                                    try {
+                                        const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
+                                            body: JSON.stringify({
+                                                model,
+                                                messages: [
+                                                    { role: 'system', content: 'You are an expert technical career mentor. Output ONLY clean, valid JSON.' },
+                                                    { role: 'user', content: planPrompt }
+                                                ],
+                                                temperature: 0.2,
+                                                max_tokens: 1500,
+                                            }),
+                                        });
 
-                                    if (groqRes.ok) {
-                                        const groqData = await groqRes.json() as any;
-                                        const content = groqData.choices?.[0]?.message?.content || '';
-                                        const clean = content.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
-                                        const match = clean.match(/\{[\s\S]*\}/);
-                                        if (match) {
-                                            trainingPlan = JSON.parse(match[0]);
-                                            break;
+                                        if (groqRes.ok) {
+                                            const groqData = await groqRes.json() as any;
+                                            const content = groqData.choices?.[0]?.message?.content || '';
+                                            const clean = content.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+                                            const match = clean.match(/\{[\s\S]*\}/);
+                                            if (match) {
+                                                trainingPlan = JSON.parse(match[0]);
+                                                break planLoop;
+                                            }
                                         }
+                                    } catch {
+                                        // Try next
                                     }
-                                } catch {
-                                    // Try next key
                                 }
                             }
                         }
@@ -4694,32 +4698,35 @@ MENTOR GUIDELINES:
                     // Groq-based mentor chat with key rotation
                     const groqKeys = [groqApiKey, groqApiKey2].filter(Boolean) as string[];
                     
+                    const mentorModels = ['openai/gpt-oss-20b', 'openai/gpt-oss-120b', 'qwen/qwen3.8-27b', 'qwen/qwen3.6-27b'];
                     for (const key of groqKeys) {
-                        try {
-                            const groqBody = {
-                                model: 'llama-3.3-70b-versatile',
-                                messages: [
-                                    { role: 'system', content: systemPrompt },
-                                    ...(historyText ? [{ role: 'user', content: `[Previous conversation]\n${historyText}` }, { role: 'assistant', content: 'Understood. I have the context.' }] : []),
-                                    { role: 'user', content: message },
-                                ],
-                                max_tokens: 400,
-                                temperature: 0.7,
-                            };
-                            const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-                                method: 'POST',
-                                headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
-                                body: JSON.stringify(groqBody),
-                            });
-                            if (groqRes.ok) {
-                                const groqData = await groqRes.json() as any;
-                                const reply = groqData.choices?.[0]?.message?.content?.trim();
-                                if (reply) return sendJson(res, 200, { response: reply, model: 'groq' });
-                            } else {
-                                console.warn(`Mentor Groq key failed (status ${groqRes.status}), trying next key...`);
+                        for (const model of mentorModels) {
+                            try {
+                                const groqBody = {
+                                    model,
+                                    messages: [
+                                        { role: 'system', content: systemPrompt },
+                                        ...(historyText ? [{ role: 'user', content: `[Previous conversation]\n${historyText}` }, { role: 'assistant', content: 'Understood. I have the context.' }] : []),
+                                        { role: 'user', content: message },
+                                    ],
+                                    max_tokens: 400,
+                                    temperature: 0.7,
+                                };
+                                const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+                                    method: 'POST',
+                                    headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
+                                    body: JSON.stringify(groqBody),
+                                });
+                                if (groqRes.ok) {
+                                    const groqData = await groqRes.json() as any;
+                                    const reply = groqData.choices?.[0]?.message?.content?.trim();
+                                    if (reply) return sendJson(res, 200, { response: reply, model: 'groq' });
+                                } else {
+                                    console.warn(`Mentor Groq key/model failed (status ${groqRes.status}), trying next...`);
+                                }
+                            } catch (err: any) {
+                                console.warn('Mentor Groq error:', err.message);
                             }
-                        } catch (err: any) {
-                            console.warn('Mentor Groq key failed:', err.message);
                         }
                     }
 

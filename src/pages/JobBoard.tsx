@@ -144,6 +144,29 @@ function buildLinkedInNativeUrl(skills: string[], location: string, filters: any
     return `https://www.linkedin.com/jobs/search/?${params.toString()}`;
 }
 
+function buildLinkedInUrl(title: string, location: string, jobType = 'Full-Time', expLevel = 'Any'): string {
+    const params = new URLSearchParams();
+    params.set('keywords', title || 'Software Engineer');
+    if (location) params.set('location', location);
+    
+    const jt: Record<string, string> = { 'Full-Time': 'F', 'Part-Time': 'P', 'Contract': 'C', 'Internship': 'I' };
+    if (jobType && jt[jobType]) {
+        params.set('f_JT', jt[jobType]);
+    }
+
+    const expMap: Record<string, string> = {
+        'Entry Level': '2',
+        'Mid Level': '4',
+        'Senior Level': '4,5',
+        'Lead / Principal': '5,6'
+    };
+    if (expLevel && expMap[expLevel]) {
+        params.set('f_E', expMap[expLevel]);
+    }
+
+    return `https://www.linkedin.com/jobs/search/?${params.toString()}`;
+}
+
 // ─── LIVE JOBS API (JSearch) ──────────────────────────────────────────────────
 
 async function fetchLiveJobsFromJSearch(skills: string[], location: string) {
@@ -290,7 +313,7 @@ Do NOT write anything before [ or after ].`;
     return analyzeJobsWithGroqFallback(resumeText, skills, location, filters);
 }
 
-// ─── FALLBACK (llama-3.1-70b if 8b needed) ───────────────────────────────────
+// ─── FALLBACK (Groq GPT-OSS / Qwen) ───────────────────────────────────
 
 async function analyzeJobsWithGroqFallback(
     resumeText: string,
@@ -306,7 +329,7 @@ Return ONLY a JSON array. Each item: {"rank":1,"title":"","company":"","location
 JSON only, no markdown.`;
 
     const availableKeys = [import.meta.env.VITE_GROQ_API_KEY, import.meta.env.VITE_GROQ_API_KEY_2].filter(Boolean);
-    const models = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant'];
+    const models = ['openai/gpt-oss-120b', 'openai/gpt-oss-20b', 'qwen/qwen3.8-27b', 'qwen/qwen3.6-27b'];
     
     for (const key of availableKeys) {
         for (const model of models) {

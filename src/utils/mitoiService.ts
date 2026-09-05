@@ -10,8 +10,8 @@ import { searchCourses, parseCourseQuery, formatCoursesForChat, Course } from ".
 // ==================== CONFIG ====================
 const GROQ_KEY_1 = import.meta.env.VITE_GROQ_API_KEY || '';
 const GROQ_KEY_2 = import.meta.env.VITE_GROQ_API_KEY_2 || '';
-const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
-const GROQ_MODEL = 'llama-3.3-70b-versatile';
+const GROQ_MODEL = 'openai/gpt-oss-20b';
+const GROQ_MODELS = ['openai/gpt-oss-20b', 'openai/gpt-oss-120b', 'qwen/qwen3.8-27b', 'qwen/qwen3.6-27b'];
 
 // Rate limiting — very conservative to avoid quota exhaustion
 let lastApiCall = 0;
@@ -102,37 +102,38 @@ async function callGroq(prompt: string): Promise<string | null> {
   if (keys.length === 0) return null;
 
   for (const key of keys) {
-    try {
-      const response = await fetch(GROQ_API_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${key}`,
-        },
-        body: JSON.stringify({
-          model: GROQ_MODEL,
-          messages: [
-            { role: 'system', content: 'You are a helpful, friendly assistant for VidyaMitra. Keep responses concise (under 100 words) and use emojis sparingly.' },
-            { role: 'user', content: prompt },
-          ],
-          temperature: 0.7,
-          max_tokens: 600,
-        }),
-      });
+    for (const model of GROQ_MODELS) {
+      try {
+        const response = await fetch(GROQ_API_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${key}`,
+          },
+          body: JSON.stringify({
+            model,
+            messages: [
+              { role: 'system', content: 'You are a helpful, friendly assistant for VidyaMitra. Keep responses concise (under 100 words) and use emojis sparingly.' },
+              { role: 'user', content: prompt },
+            ],
+            temperature: 0.7,
+            max_tokens: 600,
+          }),
+        });
 
-      if (!response.ok) {
-        console.warn(`Mitoi Groq key failed (${response.status}), trying next...`);
-        continue;
-      }
+        if (!response.ok) {
+          continue;
+        }
 
-      const data = await response.json();
-      const text = data.choices?.[0]?.message?.content?.trim();
-      if (text) {
-        responseCache.set(cacheKey, { response: text, timestamp: Date.now() });
-        return text;
+        const data = await response.json();
+        const text = data.choices?.[0]?.message?.content?.trim();
+        if (text) {
+          responseCache.set(cacheKey, { response: text, timestamp: Date.now() });
+          return text;
+        }
+      } catch (err: unknown) {
+        console.warn('Mitoi Groq error, trying next:', (err as Error).message);
       }
-    } catch (err: unknown) {
-      console.error('❌ Mitoi Groq error:', (err as Error).message);
     }
   }
 

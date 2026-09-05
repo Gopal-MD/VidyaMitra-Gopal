@@ -7,8 +7,10 @@ import type { AIATSAnalysis, GeneratedQuestion } from './geminiService';
 
 const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY || '';
 const GROQ_API_KEY_2 = import.meta.env.VITE_GROQ_API_KEY_2 || '';
-const MODEL = 'llama-3.3-70b-versatile'; // Primary Groq model for resume analysis
-const MODEL_QUESTIONS = 'llama-3.1-8b-instant'; // Fast, lightweight model for question generation
+const MODEL = 'openai/gpt-oss-120b'; // Primary Groq model for resume analysis
+const GROQ_MODELS = ['openai/gpt-oss-120b', 'openai/gpt-oss-20b', 'qwen/qwen3.8-27b', 'qwen/qwen3.6-27b'];
+const MODEL_QUESTIONS = 'openai/gpt-oss-20b'; // Fast, lightweight model for question generation
+const GROQ_QUESTION_MODELS = ['openai/gpt-oss-20b', 'openai/gpt-oss-120b', 'qwen/qwen3.8-27b', 'qwen/qwen3.6-27b'];
 
 // ==================== ADVANCED RATE LIMITING ====================
 
@@ -207,40 +209,51 @@ Important rules:
     // Enforce rate limiting before API call
     await enforceRateLimit();
     
-    // API call with retry logic
+    // API call with key and model fallback
+    const availableKeys = [GROQ_API_KEY, GROQ_API_KEY_2].filter(Boolean);
     const makeAPICall = async () => {
-      const response = await fetch(GROQ_API_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${GROQ_API_KEY}`
-        },
-        body: JSON.stringify({
-          model: MODEL,
-          messages: [
-            {
-              role: 'system',
-              content: 'You are an expert ATS system and HR recruiter. Always respond with valid JSON only.'
-            },
-            {
-              role: 'user',
-              content: prompt
+      let lastErrText = '';
+      for (const key of (availableKeys.length > 0 ? availableKeys : [GROQ_API_KEY])) {
+        for (const model of GROQ_MODELS) {
+          try {
+            const response = await fetch(GROQ_API_URL, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${key}`
+              },
+              body: JSON.stringify({
+                model,
+                messages: [
+                  {
+                    role: 'system',
+                    content: 'You are an expert ATS system and HR recruiter. Always respond with valid JSON only.'
+                  },
+                  {
+                    role: 'user',
+                    content: prompt
+                  }
+                ],
+                temperature: 0.3,
+                max_tokens: 2000,
+                top_p: 1,
+                stream: false
+              })
+            });
+
+            if (!response.ok) {
+              lastErrText = await response.text().catch(() => response.statusText);
+              continue;
             }
-          ],
-          temperature: 0.3,
-          max_tokens: 2000,
-          top_p: 1,
-          stream: false
-        })
-      });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('❌ Groq API error:', response.status, errorText);
-        throw new Error(`Groq API error: ${response.status} - ${errorText}`);
+            return await response.json();
+          } catch (err: any) {
+            lastErrText = err.message;
+            continue;
+          }
+        }
       }
-
-      return response.json();
+      throw new Error(`Groq API error: ${lastErrText}`);
     };
     
     // Execute with retry
@@ -402,41 +415,41 @@ Example format:
     // Enforce rate limiting before API call
     await enforceRateLimit();
     
-    // Try each available key until one works (key rotation)
+    // Try each available key and model until one works
     let data: any = null;
     for (const key of availableKeys) {
-      try {
-        const response = await fetch(GROQ_API_URL, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${key}`
-          },
-          body: JSON.stringify({
-            model: MODEL_QUESTIONS,
-            messages: [
-              { role: 'system', content: 'You are an expert HR interviewer. Always respond with valid JSON only.' },
-              { role: 'user', content: prompt }
-            ],
-            temperature: 0.7,
-            max_tokens: 1500,
-            top_p: 1,
-            stream: false
-          })
-        });
+      for (const model of GROQ_QUESTION_MODELS) {
+        try {
+          const response = await fetch(GROQ_API_URL, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${key}`
+            },
+            body: JSON.stringify({
+              model,
+              messages: [
+                { role: 'system', content: 'You are an expert HR interviewer. Always respond with valid JSON only.' },
+                { role: 'user', content: prompt }
+              ],
+              temperature: 0.7,
+              max_tokens: 1500,
+              top_p: 1,
+              stream: false
+            })
+          });
 
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.warn(`⚠️ Groq key failed (${response.status}), trying next key...`);
-          continue; // Try next key on any error (401, 429, etc.)
+          if (!response.ok) {
+            continue;
+          }
+
+          data = await response.json();
+          break;
+        } catch {
+          continue;
         }
-
-        data = await response.json();
-        break; // Success — stop trying keys
-      } catch (err: any) {
-        console.warn('⚠️ Groq key network error, trying next key:', err.message);
-        continue;
       }
+      if (data) break;
     }
     
     if (!data) throw new Error('All Groq API keys failed');
