@@ -7,9 +7,8 @@ import type { AIATSAnalysis, GeneratedQuestion } from './geminiService';
 
 const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY || '';
 const GROQ_API_KEY_2 = import.meta.env.VITE_GROQ_API_KEY_2 || '';
-const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
-const MODEL = 'openai/gpt-oss-120b'; // Primary Groq model for resume analysis
-const MODEL_QUESTIONS = 'qwen/qwen3.8-27b'; // Model for question generation (lighter, faster)
+const MODEL = 'llama-3.3-70b-versatile'; // Primary Groq model for resume analysis
+const MODEL_QUESTIONS = 'llama-3.1-8b-instant'; // Fast, lightweight model for question generation
 
 // ==================== ADVANCED RATE LIMITING ====================
 
@@ -414,7 +413,7 @@ Example format:
             'Authorization': `Bearer ${key}`
           },
           body: JSON.stringify({
-            model: 'qwen/qwen3.8-27b',
+            model: MODEL_QUESTIONS,
             messages: [
               { role: 'system', content: 'You are an expert HR interviewer. Always respond with valid JSON only.' },
               { role: 'user', content: prompt }

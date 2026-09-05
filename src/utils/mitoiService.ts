@@ -11,7 +11,7 @@ import { searchCourses, parseCourseQuery, formatCoursesForChat, Course } from ".
 const GROQ_KEY_1 = import.meta.env.VITE_GROQ_API_KEY || '';
 const GROQ_KEY_2 = import.meta.env.VITE_GROQ_API_KEY_2 || '';
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
-const GROQ_MODEL = 'qwen/qwen3.8-27b';
+const GROQ_MODEL = 'llama-3.3-70b-versatile';
 
 // Rate limiting — very conservative to avoid quota exhaustion
 let lastApiCall = 0;

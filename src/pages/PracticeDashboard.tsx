@@ -145,11 +145,11 @@ const PracticeDashboard = () => {
             className="text-center"
           >
             <div className="flex items-center justify-center gap-3 mb-4">
-              <div className="bg-blue-100 p-3 rounded-lg">
-                <Code className="h-8 w-8 text-blue-600" />
+              <div className="bg-blue-500/10 border border-blue-500/20 p-3 rounded-xl shadow-sm">
+                <Code className="h-8 w-8 text-blue-500" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">Coding Practice Dashboard</h1>
+                <h1 className="text-3xl font-bold text-foreground">Coding Practice Dashboard</h1>
                 <p className="text-muted-foreground mt-1">
                   Master algorithms and data structures with our comprehensive question bank
                 </p>
@@ -159,50 +159,50 @@ const PracticeDashboard = () => {
 
           {/* Statistics Cards */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Card className="border-l-4 border-l-blue-500">
+            <Card className="border-l-4 border-l-blue-500 bg-card/60 backdrop-blur-sm">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Total Questions</p>
-                    <p className="text-2xl font-bold text-gray-900">{stats.totalQuestions}</p>
+                    <p className="text-sm font-medium text-muted-foreground">Total Questions</p>
+                    <p className="text-2xl font-bold text-foreground">{stats.totalQuestions}</p>
                   </div>
                   <BookOpen className="h-8 w-8 text-blue-500" />
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="border-l-4 border-l-green-500">
+            <Card className="border-l-4 border-l-emerald-500 bg-card/60 backdrop-blur-sm">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Easy</p>
-                    <p className="text-2xl font-bold text-green-600">{stats.easyCount}</p>
+                    <p className="text-sm font-medium text-muted-foreground">Easy</p>
+                    <p className="text-2xl font-bold text-emerald-500">{stats.easyCount}</p>
                   </div>
-                  <Target className="h-8 w-8 text-green-500" />
+                  <Target className="h-8 w-8 text-emerald-500" />
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="border-l-4 border-l-yellow-500">
+            <Card className="border-l-4 border-l-amber-500 bg-card/60 backdrop-blur-sm">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Medium</p>
-                    <p className="text-2xl font-bold text-yellow-600">{stats.mediumCount}</p>
+                    <p className="text-sm font-medium text-muted-foreground">Medium</p>
+                    <p className="text-2xl font-bold text-amber-500">{stats.mediumCount}</p>
                   </div>
-                  <TrendingUp className="h-8 w-8 text-yellow-500" />
+                  <TrendingUp className="h-8 w-8 text-amber-500" />
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="border-l-4 border-l-red-500">
+            <Card className="border-l-4 border-l-rose-500 bg-card/60 backdrop-blur-sm">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Hard</p>
-                    <p className="text-2xl font-bold text-red-600">{stats.hardCount}</p>
+                    <p className="text-sm font-medium text-muted-foreground">Hard</p>
+                    <p className="text-2xl font-bold text-rose-500">{stats.hardCount}</p>
                   </div>
-                  <Trophy className="h-8 w-8 text-red-500" />
+                  <Trophy className="h-8 w-8 text-rose-500" />
                 </div>
               </CardContent>
             </Card>
@@ -316,10 +316,10 @@ const PracticeDashboard = () => {
                         <div className="flex items-center justify-between">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-3 mb-2">
-                              <span className="text-sm text-gray-500 font-mono">
+                              <span className="text-sm text-muted-foreground font-mono">
                                 {index + 1}.
                               </span>
-                              <h3 className="font-semibold text-gray-900 truncate">
+                              <h3 className="font-semibold text-foreground truncate">
                                 {question.title}
                               </h3>
                               <Badge className={getDifficultyColor(question.difficulty)}>
@@ -330,11 +330,11 @@ const PracticeDashboard = () => {
                               </Badge>
                             </div>
                             
-                            <p className="text-sm text-gray-600 mb-3 line-clamp-2">
+                            <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
                               {question.description.slice(0, 120)}...
                             </p>
                             
-                            <div className="flex items-center gap-4 text-xs text-gray-500">
+                            <div className="flex items-center gap-4 text-xs text-muted-foreground">
                               <span className="flex items-center gap-1">
                                 <Clock className="h-3 w-3" />
                                 {question.timeLimit || 30} min
@@ -367,11 +367,11 @@ const PracticeDashboard = () => {
                   
                   {filteredQuestions.length === 0 && (
                     <div className="text-center py-12">
-                      <div className="bg-gray-100 rounded-full p-4 w-16 h-16 mx-auto mb-4">
-                        <Search className="h-8 w-8 text-gray-400" />
+                      <div className="bg-muted rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+                        <Search className="h-8 w-8 text-muted-foreground" />
                       </div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2">No questions found</h3>
-                      <p className="text-gray-600 mb-4">
+                      <h3 className="text-lg font-semibold text-foreground mb-2">No questions found</h3>
+                      <p className="text-muted-foreground mb-4">
                         Try adjusting your search filters or search terms.
                       </p>
                       <Button 

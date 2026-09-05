@@ -336,44 +336,48 @@ async function callGroqAPI(prompt: string): Promise<string> {
   }
 
   let lastError: Error | null = null;
+  const models = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant'];
+
   for (const key of availableKeys) {
-    try {
-      const response = await fetch(GROQ_API_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${key}`,
-        },
-        body: JSON.stringify({
-          model: 'qwen/qwen3.8-27b',
-          messages: [
-            {
-              role: 'system',
-              content: 'You are an expert tech market analyst specializing in skill demand forecasting and career insights.'
-            },
-            {
-              role: 'user',
-              content: prompt
-            }
-          ],
-          temperature: 0.7,
-          max_tokens: 2000,
-        }),
-      });
+    for (const model of models) {
+      try {
+        const response = await fetch(GROQ_API_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${key}`,
+          },
+          body: JSON.stringify({
+            model,
+            messages: [
+              {
+                role: 'system',
+                content: 'You are an expert tech market analyst specializing in skill demand forecasting and career insights.'
+              },
+              {
+                role: 'user',
+                content: prompt
+              }
+            ],
+            temperature: 0.7,
+            max_tokens: 1000,
+          }),
+        });
 
-      if (!response.ok) {
-        const errText = await response.text().catch(() => response.statusText);
-        lastError = new Error(`Groq API error: ${errText}`);
-        console.warn(`⚠️ AuraSkill Groq key failed (${response.status}), trying next key...`);
-        continue; // Try next key on rate limit or auth error
+        if (!response.ok) {
+          const errText = await response.text().catch(() => response.statusText);
+          lastError = new Error(`Groq API error: ${errText}`);
+          console.warn(`⚠️ AuraSkill Groq model ${model} failed (${response.status}), trying next...`);
+          continue;
+        }
+
+        const data = await response.json();
+        return data.choices[0]?.message?.content || '';
+      } catch (error) {
+        lastError = error as Error;
+        console.warn('⚠️ AuraSkill Groq key network error, trying next:', (error as Error).message);
+        continue;
       }
-
-      const data = await response.json();
-      return data.choices[0]?.message?.content || '';
-    } catch (error) {
-      lastError = error as Error;
-      console.warn('⚠️ AuraSkill Groq key network error, trying next:', (error as Error).message);
-      continue;
     }
   }
 

@@ -266,54 +266,234 @@ async function callGeminiImage(apiKey: string, prompt: string): Promise<{ succes
 
 // ==================== GROQ API (Mermaid Roadmap) ====================
 async function callGroq(apiKey: string, prompt: string): Promise<{ success: boolean; content?: string; error?: string }> {
-    try {
-        const rate = checkAndRecordRate('groq', 5, 60);
-        if (!rate.ok) return { success: false, error: rate.error };
+    const groqKeys = [
+        apiKey,
+        process.env.GROQ_API_KEY,
+        process.env.GROQ_API_KEY_2,
+        process.env.GROQ_GAP_ANALYSIS_KEY,
+    ].filter(Boolean) as string[];
 
-        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${apiKey}`,
-            },
-            body: JSON.stringify({
-                model: 'openai/gpt-oss-120b',
-                messages: [
-                    { role: 'system', content: 'You are a career roadmap expert. Generate ONLY valid Mermaid.js flowchart code with subgraph groupings. No explanations, no markdown backticks, just the raw Mermaid code starting with graph TD. Use subgraph blocks for phases. Never use colons in labels.' },
-                    { role: 'user', content: prompt },
-                ],
-                temperature: 0.1,
-                max_tokens: 4096,
-            }),
-        });
+    const uniqueKeys = Array.from(new Set(groqKeys));
+    const models = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant'];
 
-        if (!response.ok) {
-            const errText = await response.text();
-            console.error('Groq API error:', response.status, errText);
-            return { success: false, error: `Groq API error: ${response.status}` };
+    for (const key of (uniqueKeys.length > 0 ? uniqueKeys : [apiKey])) {
+        for (const model of models) {
+            try {
+                const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${key}`,
+                    },
+                    body: JSON.stringify({
+                        model,
+                        messages: [
+                            { role: 'system', content: 'You are a career roadmap expert. Generate ONLY valid Mermaid.js flowchart code with subgraph groupings. No explanations, no markdown backticks, just the raw Mermaid code starting with graph TD. Use subgraph blocks for phases. Never use colons in labels.' },
+                            { role: 'user', content: prompt },
+                        ],
+                        temperature: 0.1,
+                        max_tokens: 1500,
+                    }),
+                });
+
+                if (!response.ok) {
+                    console.warn(`⚠️ Groq model ${model} status ${response.status}, trying next...`);
+                    continue;
+                }
+
+                const data = await response.json();
+                let content = data.choices?.[0]?.message?.content?.trim() || '';
+
+                // Clean up: strip markdown code fences if present
+                content = content.replace(/```mermaid\s*/gi, '').replace(/```\s*/g, '').trim();
+                const graphIdx = content.indexOf('graph TD');
+                if (graphIdx > 0) content = content.substring(graphIdx);
+                if (content.startsWith('graph TD')) {
+                    // Sanitize colons inside square-bracket labels
+                    content = content.replace(/\[([^\]]*):([^\]]*)\]/g, (_, a, b) => `[${a} - ${b}]`);
+                    return { success: true, content };
+                }
+            } catch (err: any) {
+                console.warn('Groq call error, trying next:', err.message);
+            }
         }
-
-        const data = await response.json();
-        let content = data.choices?.[0]?.message?.content?.trim() || '';
-
-        // Clean up: strip markdown code fences if present
-        content = content.replace(/```mermaid\s*/gi, '').replace(/```\s*/g, '').trim();
-        // Ensure it starts with graph TD
-        const graphIdx = content.indexOf('graph TD');
-        if (graphIdx > 0) content = content.substring(graphIdx);
-        if (!content.startsWith('graph TD')) {
-            return { success: false, error: 'Invalid Mermaid code generated' };
-        }
-
-        // Sanitize: remove colons inside square-bracket labels (common LLM mistake)
-        content = content.replace(/\[([^\]]*):([^\]]*)\]/g, (_, a, b) => `[${a} - ${b}]`);
-
-        return { success: true, content };
-    } catch (err: any) {
-        console.error('Groq call failed:', err);
-        return { success: false, error: err.message || 'Groq call failed' };
     }
+
+    return { success: false, error: 'All Groq keys/models failed' };
 }
+
+function generateFallbackMermaid(targetRole: string, timeline = '3 months', currentSkills = '', skillsToLearn = ''): string {
+    const role = targetRole || 'Software Engineer';
+    const numPhases = timeline === '1 month' ? 2 : timeline === '6 months' ? 4 : 3;
+
+    if (numPhases === 2) {
+        return `graph TD
+    subgraph Phase1[Phase 1 - Core Fundamentals]
+        A1[Core Syntax & Concepts] --> A2[Data Structures]
+        A2 --> A3[Essential Tooling]
+        B1[Environment Setup] --> B2[Git & Collaboration]
+        B2 --> B3[Unit Testing Basics]
+    end
+    subgraph Phase2[Phase 2 - Applied Projects & Mastery]
+        C1[Full Application Build] --> C2[API Integration]
+        C2 --> C3[Performance Tuning]
+        D1[System Architecture] --> D2[CI/CD & Cloud Deploy]
+        D2 --> D3[Portfolio Polish]
+    end
+    A3 --> C1
+    B3 --> D1
+    C3 --> Goal[${role} Ready]
+    D3 --> Goal
+    style A1 fill:#6366f1,color:#fff
+    style B1 fill:#6366f1,color:#fff
+    style C1 fill:#06b6d4,color:#fff
+    style D1 fill:#06b6d4,color:#fff
+    style Goal fill:#10b981,color:#fff`;
+    }
+
+    if (numPhases === 4) {
+        return `graph TD
+    subgraph Phase1[Month 1 - Foundations]
+        A1[Core Languages & Tools] --> A2[Algorithms & Data Structures]
+        B1[Version Control & Git] --> B2[Dev Environment]
+    end
+    subgraph Phase2[Month 2 - Advanced Architecture]
+        C1[Framework Deep Dive] --> C2[Database & State Mgmt]
+        D1[Design Patterns] --> D2[Security & Auth]
+    end
+    subgraph Phase3[Month 3-4 - Full Stack Mastery]
+        E1[Microservices & Cloud] --> E2[CI/CD Pipelines]
+        F1[Real-time Systems] --> F2[Scalability & Caching]
+    end
+    subgraph Phase4[Month 5-6 - Capstone & Career Prep]
+        G1[Production Capstone] --> G2[System Design Prep]
+        H1[Mock Technical Interviews] --> H2[Resume & Portfolio]
+    end
+    A2 --> C1
+    B2 --> D1
+    C2 --> E1
+    D2 --> F1
+    E2 --> G1
+    F2 --> H1
+    G2 --> Goal[Senior ${role} Mastery]
+    H2 --> Goal
+    style A1 fill:#6366f1,color:#fff
+    style C1 fill:#3b82f6,color:#fff
+    style E1 fill:#06b6d4,color:#fff
+    style G1 fill:#8b5cf6,color:#fff
+    style Goal fill:#10b981,color:#fff`;
+    }
+
+    return `graph TD
+    subgraph Phase1[Month 1 - Foundations & Skills]
+        A1[Core Concepts & Syntax] --> A2[Data Structures & Logic]
+        A2 --> A3[Hands-on Exercises]
+        B1[Tooling & Git Workflow] --> B2[Code Quality & Linting]
+        B2 --> B3[Module Testing]
+    end
+    subgraph Phase2[Month 2 - Advanced & Domain Skills]
+        C1[Frameworks & Libraries] --> C2[Backend & API Design]
+        C2 --> C3[Database Integration]
+        D1[State Management] --> D2[Security & Best Practices]
+        D2 --> D3[Optimization]
+    end
+    subgraph Phase3[Month 3 - Production & Portfolio]
+        E1[Full-Stack Capstone] --> E2[CI/CD & Cloud Deployment]
+        E2 --> E3[Monitoring & Logging]
+        F1[Interview Prep & LeetCode] --> F2[System Design Basics]
+        F2 --> F3[Portfolio Deployment]
+    end
+    A3 --> C1
+    B3 --> D1
+    C3 --> E1
+    D3 --> F1
+    E3 --> Goal[${role} Professional Ready]
+    F3 --> Goal
+    style A1 fill:#6366f1,color:#fff
+    style B1 fill:#6366f1,color:#fff
+    style C1 fill:#3b82f6,color:#fff
+    style D1 fill:#3b82f6,color:#fff
+    style E1 fill:#8b5cf6,color:#fff
+    style F1 fill:#8b5cf6,color:#fff
+    style Goal fill:#10b981,color:#fff`;
+}
+
+function generateLocalCareerPlan(targetRole: string, skillGaps: string[] = []): any {
+    const role = targetRole || 'Software Engineer';
+    const gaps = (skillGaps && skillGaps.length > 0) ? skillGaps : ['Core Principles', 'Architecture', 'System Design'];
+
+    const weeklyPlan = [
+        {
+            week: 1,
+            title: `Week 1: Foundations of ${role}`,
+            topics: ['Core syntax & programming paradigms', 'Development environment & modern tooling', 'Version control with Git & GitHub'],
+            goals: ['Complete 5 foundational coding exercises', 'Set up local development container/environment'],
+            resources: [`Official ${role} documentation`, 'FreeCodeCamp Interactive Course', 'CS50 Introduction']
+        },
+        {
+            week: 2,
+            title: `Week 2: Data Structures & Algorithms`,
+            topics: ['Arrays, Hash Maps, Linked Lists', 'Time and Space Complexity (Big-O)', 'Binary Search & Two-Pointer techniques'],
+            goals: ['Solve 10 LeetCode Easy/Medium problems', 'Implement key data structures from scratch'],
+            resources: ['NeetCode 150 roadmap', 'GeeksforGeeks Data Structures', 'LeetCode Explore']
+        },
+        {
+            week: 3,
+            title: `Week 3: Key Skill Gap Deep-Dive: ${gaps[0] || 'Domain Architecture'}`,
+            topics: [`${gaps[0] || 'Core Architecture'} deep dive`, 'Design patterns & modular coding', 'Error handling and edge cases'],
+            goals: ['Build a standalone module showcasing this skill', 'Write comprehensive unit tests'],
+            resources: ['Refactoring.Guru Design Patterns', 'Clean Code by Robert C. Martin', 'MDN Web Docs']
+        },
+        {
+            week: 4,
+            title: `Week 4: Secondary Skills & Integration: ${gaps[1] || 'API & Data Storage'}`,
+            topics: [`${gaps[1] || 'Database & API'} integration`, 'REST / GraphQL architecture', 'Asynchronous programming & concurrency'],
+            goals: ['Connect backend services with persistent database', 'Implement robust request validation'],
+            resources: ['Postman API Academy', 'Supabase / PostgreSQL Documentation', 'REST API Best Practices']
+        },
+        {
+            week: 5,
+            title: `Week 5: System Design & Scalability`,
+            topics: ['Monolithic vs Microservices', 'Caching strategies (Redis, CDNs)', 'Load balancing & horizontal scaling'],
+            goals: ['Draw end-to-end architecture diagrams for a high-traffic app', 'Implement redis caching layer'],
+            resources: ['System Design Primer (GitHub)', 'ByteByteGo System Design', 'High Scalability blog']
+        },
+        {
+            week: 6,
+            title: `Week 6: Testing, CI/CD & Cloud Deployment`,
+            topics: ['Unit, Integration, and E2E Testing', 'Docker containerization', 'GitHub Actions / CI pipelines', 'Cloud hosting & environments'],
+            goals: ['Automate test suites in GitHub Actions', 'Deploy containerized web service to cloud'],
+            resources: ['Docker Getting Started', 'GitHub Actions Documentation', 'Render / AWS Deployment Guides']
+        },
+        {
+            week: 7,
+            title: `Week 7: Production Capstone Project`,
+            topics: ['Building production-grade full-stack project', 'Security best practices (OAuth, CSRF, rate-limiting)', 'Performance auditing & Lighthouse score'],
+            goals: ['Complete capstone repository with thorough README', 'Deploy live demo with custom domain or URL'],
+            resources: ['OWASP Top 10 Security', 'Web.dev Performance Checklist', 'Production Readiness Review']
+        },
+        {
+            week: 8,
+            title: `Week 8: Technical Interview Prep & Career Launch`,
+            topics: ['Mock behavioral interviews (STAR method)', 'Live coding interview practice', 'Resume & portfolio optimization for ATS'],
+            goals: ['Complete 3 mock interviews on VidyaMitra', 'Tailor resume with ATS score > 85%', 'Apply to 10 matching target positions'],
+            resources: ['VidyaMitra AI Mock Interviews', 'Cracking the Coding Interview', 'Tech Interview Handbook']
+        }
+    ];
+
+    return {
+        weeklyPlan,
+        milestones: [
+            'Milestone 1 (Week 2): Mastered foundational algorithms and environment setup',
+            `Milestone 2 (Week 4): Conquered primary skill gaps in ${gaps.slice(0, 2).join(', ')}`,
+            'Milestone 3 (Week 6): Deployed containerized services with CI/CD automation',
+            `Milestone 4 (Week 8): Completed production capstone and interview readiness for ${role}`
+        ],
+        estimatedCompletion: '8 weeks',
+        dailyHours: 2
+    };
+}
+
 
 async function fetchYouTubeVideos(apiKey: string, query: string, maxResults = 3): Promise<any[]> {
     try {
@@ -1508,33 +1688,37 @@ export function vidyaMitraApiPlugin(): Plugin {
                     if (allKeys.length === 0) return sendJson(res, 503, { error: 'No Groq API keys configured' });
 
                     let lastStatus = 500;
-                    for (const key of allKeys) {
-                        try {
-                            const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
-                                body: JSON.stringify({
-                                    model: 'qwen/qwen3.8-27b',
-                                    messages: [
-                                        { role: 'system', content: systemPrompt },
-                                        { role: 'user', content: userPrompt },
-                                    ],
-                                    temperature: 0.1,
-                                    max_tokens: 3000,
-                                }),
-                            });
+                    const models = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant'];
 
-                            if (!r.ok) {
-                                lastStatus = r.status;
-                                console.warn(`⚠️ Job analysis: Groq key failed (${r.status}), trying next...`);
+                    for (const key of allKeys) {
+                        for (const model of models) {
+                            try {
+                                const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
+                                    body: JSON.stringify({
+                                        model,
+                                        messages: [
+                                            { role: 'system', content: systemPrompt },
+                                            { role: 'user', content: userPrompt },
+                                        ],
+                                        temperature: 0.1,
+                                        max_tokens: 1500,
+                                    }),
+                                });
+
+                                if (!r.ok) {
+                                    lastStatus = r.status;
+                                    console.warn(`⚠️ Job analysis: Groq model ${model} failed (${r.status}), trying next...`);
+                                    continue;
+                                }
+
+                                const data = await r.json() as any;
+                                return sendJson(res, 200, { content: data.choices?.[0]?.message?.content || '' });
+                            } catch (err: any) {
+                                console.warn('⚠️ Job analysis Groq key error:', err.message);
                                 continue;
                             }
-
-                            const data = await r.json() as any;
-                            return sendJson(res, 200, { content: data.choices?.[0]?.message?.content || '' });
-                        } catch (err: any) {
-                            console.warn('⚠️ Job analysis Groq key error:', err.message);
-                            continue;
                         }
                     }
 
@@ -2323,7 +2507,6 @@ Return ONLY valid JSON format:
                     try {
                         const { targetRole, skillGaps } = await parseBody(req);
                         if (!targetRole) return sendJson(res, 400, { error: 'targetRole required' });
-                        if (!keys.GEMINI_API_KEY) return sendJson(res, 503, { error: 'Gemini not configured' });
 
                         // Fetch platform course settings
                         const courseMode = await getCourseMode();
@@ -2332,9 +2515,20 @@ Return ONLY valid JSON format:
                             ? `\n\nPARTNER PLATFORMS: For course recommendations in "resources", you MUST prioritize courses from these partner platforms${courseMode === 'platform' ? ' ONLY' : ' first'}:\n${activePlatforms.map((p: any) => `- ${p.name} (${p.base_url})`).join('\n')}\n${courseMode === 'combined' ? 'After listing partner platform courses, you may also include other free resources.' : 'Only suggest courses from the above partner platforms.'}`
                             : '';
 
-                        // Generate training plan via Gemini
-                        const prompt = `You are a career counselor and technical mentor. Create a detailed 8-week training plan for someone aiming to become a "${targetRole}".
+                        let trainingPlan: any = null;
 
+                        // Try Groq for training plan generation
+                        const groqKeys = [
+                            keys.GROQ_API_KEY,
+                            process.env.GROQ_API_KEY,
+                            process.env.GROQ_API_KEY_2,
+                            process.env.GROQ_GAP_ANALYSIS_KEY,
+                        ].filter(Boolean) as string[];
+
+                        const uniqueGroqKeys = Array.from(new Set(groqKeys));
+
+                        if (uniqueGroqKeys.length > 0) {
+                            const planPrompt = `You are a career counselor and technical mentor. Create a detailed 8-week training plan for someone aiming to become a "${targetRole}".
 Their skill gaps are: ${JSON.stringify(skillGaps || [])}.${platformInstruction}
 
 Return valid JSON with this structure:
@@ -2350,44 +2544,53 @@ Return valid JSON with this structure:
 
 Return ONLY valid JSON.`;
 
-                        const result = await callGemini(keys.GEMINI_API_KEY, prompt, { temperature: 0.6, maxTokens: 2048 });
-                        let trainingPlan = {};
-                        if (result.success && result.text) {
-                            try {
-                                let clean = result.text.replace(/```json\n?|\n?```/g, '').trim();
-                                const match = clean.match(/\{[\s\S]*\}/);
-                                if (match) clean = match[0];
-                                trainingPlan = JSON.parse(clean);
-                            } catch {
-                                trainingPlan = { error: 'Failed to parse plan', raw: result.text?.substring(0, 500) };
+                            for (const key of uniqueGroqKeys) {
+                                try {
+                                    const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
+                                        body: JSON.stringify({
+                                            model: 'llama-3.3-70b-versatile',
+                                            messages: [
+                                                { role: 'system', content: 'You are an expert technical career mentor. Output ONLY clean, valid JSON.' },
+                                                { role: 'user', content: planPrompt }
+                                            ],
+                                            temperature: 0.2,
+                                            max_tokens: 1500,
+                                        }),
+                                    });
+
+                                    if (groqRes.ok) {
+                                        const groqData = await groqRes.json() as any;
+                                        const content = groqData.choices?.[0]?.message?.content || '';
+                                        const clean = content.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+                                        const match = clean.match(/\{[\s\S]*\}/);
+                                        if (match) {
+                                            trainingPlan = JSON.parse(match[0]);
+                                            break;
+                                        }
+                                    }
+                                } catch {
+                                    // Try next key
+                                }
                             }
                         }
 
+                        // Local deterministic fallback if Groq failed or was unconfigured
+                        if (!trainingPlan || !trainingPlan.weeklyPlan || !Array.isArray(trainingPlan.weeklyPlan)) {
+                            trainingPlan = generateLocalCareerPlan(targetRole, skillGaps);
+                        }
+
                         // Fetch YouTube videos for top skills
-                        const topSkills = (skillGaps || [targetRole]).slice(0, 3);
+                        const topSkills = (skillGaps && skillGaps.length > 0) ? skillGaps.slice(0, 3) : [targetRole];
                         const allVideos: any[] = [];
                         for (const skill of topSkills) {
                             const videos = await fetchYouTubeVideos(keys.YOUTUBE_API_KEY, `${skill} tutorial for ${targetRole}`, 2);
                             allVideos.push({ skill, videos });
                         }
 
-                        // Generate Image using gemini-2.5-flash-image
-                        const imagePrompt = `A visually appealing, highly detailed info-graphic roadmap and flowchart for a learning journey to become a ${targetRole}. Make it modern and clean with milestone paths. Include text highlighting ${targetRole} roadmap.`;
-                        const geminiImageResponse = await callGeminiImage(keys.GEMINI_IMAGE_API_KEY, imagePrompt);
-
-                        // Fetch Pexels images fallback if needed, or simply append
+                        // Fetch Pexels images fallback
                         const images = await fetchPexelsImages(keys.PEXELS_API_KEY, `${targetRole} career learning`);
-
-                        // If the Gemini image generation succeeds, prepend it as the main image
-                        if (geminiImageResponse.success && geminiImageResponse.imageBase64) {
-                            images.unshift({
-                                id: 'gemini-generated',
-                                url: geminiImageResponse.imageBase64,
-                                photographer: 'Generated by Gemini 2.5 Flash Image',
-                                alt: `AI Generated Roadmap for ${targetRole}`,
-                                isGemini: true
-                            });
-                        }
 
                         // Save plan
                         const id = generateId();
@@ -2420,10 +2623,6 @@ Return ONLY valid JSON.`;
                     const { targetRole, timeline, currentSkills, skillsToLearn, notes } = await parseBody(req);
                     if (!targetRole) return sendJson(res, 400, { error: 'Target role is required' });
 
-                    if (!keys.GROQ_API_KEY) {
-                        return sendJson(res, 500, { error: 'Groq API key not configured' });
-                    }
-
                     const timelineText = timeline || '3 months';
                     const currentSkillsText = currentSkills || 'None specified';
                     const skillsToLearnText = skillsToLearn || targetRole;
@@ -2452,40 +2651,24 @@ Generate ONLY valid Mermaid.js flowchart code following these STRICT rules:
 13. Create 15-25 nodes across ${timelineText === '1 month' ? '2 phases' : timelineText === '3 months' ? '3 phases' : '4-6 phases'}
 14. End with a single final goal node that all paths converge to
 
-Example format:
-graph TD
-    subgraph Phase1[Month 1 Fundamentals]
-        A1[Learn Basics] --> A2[Core Concepts]
-        A2 --> A3[Practice Skills]
-        B1[Setup Tools] --> B2[Read Docs]
-        B2 --> B3[Build Demo]
-    end
-    subgraph Phase2[Month 2 Advanced]
-        C1[Advanced Topics] --> C2[Deep Dive]
-        C2 --> C3[Build Projects]
-        D1[Testing] --> D2[Optimization]
-        D2 --> D3[Deploy Apps]
-    end
-    A3 --> C1
-    B3 --> D1
-    C3 --> E1[Final Goal]
-    D3 --> E1
-    style A1 fill:#4CAF50,color:#fff
-    style B1 fill:#4CAF50,color:#fff
-    style C1 fill:#2196F3,color:#fff
-    style D1 fill:#2196F3,color:#fff
-    style E1 fill:#FF9800,color:#fff
-
 Generate the Mermaid code now for the ${targetRole} roadmap:`;
 
+                    let mermaidCode = '';
                     const result = await callGroq(keys.GROQ_API_KEY, prompt);
-                    if (!result.success) {
-                        return sendJson(res, 500, { error: result.error || 'Failed to generate roadmap chart' });
+                    if (result.success && result.content) {
+                        mermaidCode = result.content;
                     }
 
-                    sendJson(res, 200, { success: true, mermaidCode: result.content });
+                    // Guaranteed fallback if Groq failed or produced unparseable output
+                    if (!mermaidCode || !mermaidCode.includes('graph TD')) {
+                        mermaidCode = generateFallbackMermaid(targetRole, timelineText, currentSkillsText, skillsToLearnText);
+                    }
+
+                    sendJson(res, 200, { success: true, mermaidCode });
                 } catch (err: any) {
-                    sendJson(res, 500, { error: err.message });
+                    // Even on unexpected error, provide fallback chart so UI never breaks
+                    const fallback = generateFallbackMermaid('Software Engineer', '3 months');
+                    sendJson(res, 200, { success: true, mermaidCode: fallback });
                 }
             });
 
@@ -4514,7 +4697,7 @@ MENTOR GUIDELINES:
                     for (const key of groqKeys) {
                         try {
                             const groqBody = {
-                                model: 'qwen/qwen3.8-27b',
+                                model: 'llama-3.3-70b-versatile',
                                 messages: [
                                     { role: 'system', content: systemPrompt },
                                     ...(historyText ? [{ role: 'user', content: `[Previous conversation]\n${historyText}` }, { role: 'assistant', content: 'Understood. I have the context.' }] : []),

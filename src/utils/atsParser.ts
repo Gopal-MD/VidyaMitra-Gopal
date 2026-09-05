@@ -471,7 +471,7 @@ export const processResume = async (
   
   // Try AI analysis first
   try {
-    console.log(`🤖 Attempting AI analysis with Gemini for role: ${targetRole}`);
+    console.log(`🤖 Attempting AI analysis for role: ${targetRole}`);
     const aiAnalysis = await analyzeResumeWithAI(text, targetRole);
     console.log(`✅ AI analysis successful - Score: ${aiAnalysis.ats_match_score}`);
     
@@ -558,7 +558,7 @@ export const processResumeFromText = async (
   const targetRole = roleMap[roleId] || roleId.replace(/-/g, ' ');
 
   try {
-    console.log(`🤖 Attempting AI analysis with Gemini for role: ${targetRole}`);
+    console.log(`🤖 Attempting AI analysis for role: ${targetRole}`);
     const aiAnalysis = await analyzeResumeWithAI(text, targetRole);
     console.log(`✅ AI analysis successful - Score: ${aiAnalysis.ats_match_score}`);
 
