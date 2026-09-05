@@ -566,15 +566,14 @@ async function handleCodingHints(apiKey: string, body: any, res: ServerResponse)
 // ==================== VITE PLUGIN ====================
 
 export function openaiProxyPlugin(): Plugin {
-  let apiKey = '';
+  let apiKey = process.env.OPENAI_API_KEY || '';
 
-  return {
-    name: 'openai-proxy',
-
-    async configResolved(config) {
-      // Load env vars (including non-VITE_ prefixed ones) for the server
-      const baseEnv = { ...process.env, ...loadEnv(config.mode, config.root, '') };
-      // Load secrets from AWS Secrets Manager (if enabled) or fallback to .env
+  async function initKey(config?: any) {
+    if (apiKey) return;
+    try {
+      const mode = config?.mode || 'production';
+      const root = config?.root || process.cwd();
+      const baseEnv = { ...process.env, ...loadEnv(mode, root, '') };
       const env = await loadEnvWithSecrets(baseEnv);
       apiKey = env.OPENAI_API_KEY || process.env.OPENAI_API_KEY || '';
 
@@ -583,88 +582,100 @@ export function openaiProxyPlugin(): Plugin {
       } else {
         console.warn('⚠️  OPENAI_API_KEY not found in .env — OpenAI features will be disabled');
       }
+    } catch {
+      apiKey = process.env.OPENAI_API_KEY || '';
+    }
+  }
+
+  function setupOpenaiRoutes(server: { middlewares: any }) {
+    // Handle CORS preflight
+    server.middlewares.use('/api/openai', (req: IncomingMessage, res: ServerResponse, next: () => void) => {
+      if (req.method === 'OPTIONS') {
+        res.writeHead(204, {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type',
+        });
+        res.end();
+        return;
+      }
+      next();
+    });
+
+    // Rate limit info endpoint (GET)
+    server.middlewares.use('/api/openai/rate-limit', (req: IncomingMessage, res: ServerResponse, next: () => void) => {
+      if (req.method !== 'GET') return next();
+      sendJSON(res, 200, getRateLimitInfo());
+    });
+
+    // All POST routes
+    const routes: Record<string, (apiKey: string, body: any, res: ServerResponse) => Promise<void>> = {
+      '/api/openai/test': handleTest,
+      '/api/openai/generate-questions': handleGenerateQuestions,
+      '/api/openai/evaluate-answer': handleEvaluateAnswer,
+      '/api/openai/batch-evaluate': handleBatchEvaluate,
+      '/api/openai/analyze-resume': handleAnalyzeResume,
+      '/api/openai/chat': handleChat,
+      '/api/openai/friede': handleFriedeInterview,
+      '/api/openai/coding-hints': handleCodingHints,
+    };
+
+    for (const [route, handler] of Object.entries(routes)) {
+      server.middlewares.use(route, async (req: IncomingMessage, res: ServerResponse, next: () => void) => {
+        if (req.method !== 'POST') return next();
+
+        // Check if API key is configured
+        if (!apiKey) {
+          return sendJSON(res, 503, {
+            success: false,
+            error: 'OpenAI API key not configured. Add OPENAI_API_KEY to your .env file.',
+          });
+        }
+
+        // Check rate limits
+        const rateCheck = checkRateLimit();
+        if (!rateCheck.allowed) {
+          res.writeHead(429, {
+            'Content-Type': 'application/json',
+            'Retry-After': String(rateCheck.retryAfter || 1),
+          });
+          res.end(JSON.stringify({
+            success: false,
+            error: rateCheck.error,
+            retryAfter: rateCheck.retryAfter,
+            ...getRateLimitInfo(),
+          }));
+          return;
+        }
+
+        try {
+          const body = await parseRequestBody(req);
+          await handler(apiKey, body, res);
+        } catch (error: any) {
+          sendJSON(res, 500, {
+            success: false,
+            error: error.message || 'Internal server error',
+          });
+        }
+      });
+    }
+  }
+
+  return {
+    name: 'openai-proxy',
+
+    async configResolved(config) {
+      await initKey(config);
     },
 
     configureServer(server: ViteDevServer) {
-      this.setupRoutes(server);
+      initKey();
+      setupOpenaiRoutes(server);
     },
 
     configurePreviewServer(server: any) {
-      this.setupRoutes(server);
-    },
-
-    setupRoutes(server: { middlewares: any }) {
-      // Handle CORS preflight
-      server.middlewares.use('/api/openai', (req: IncomingMessage, res: ServerResponse, next: () => void) => {
-        if (req.method === 'OPTIONS') {
-          res.writeHead(204, {
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type',
-          });
-          res.end();
-          return;
-        }
-        next();
-      });
-
-      // Rate limit info endpoint (GET)
-      server.middlewares.use('/api/openai/rate-limit', (req: IncomingMessage, res: ServerResponse, next: () => void) => {
-        if (req.method !== 'GET') return next();
-        sendJSON(res, 200, getRateLimitInfo());
-      });
-
-      // All POST routes
-      const routes: Record<string, (apiKey: string, body: any, res: ServerResponse) => Promise<void>> = {
-        '/api/openai/test': handleTest,
-        '/api/openai/generate-questions': handleGenerateQuestions,
-        '/api/openai/evaluate-answer': handleEvaluateAnswer,
-        '/api/openai/batch-evaluate': handleBatchEvaluate,
-        '/api/openai/analyze-resume': handleAnalyzeResume,
-        '/api/openai/chat': handleChat,
-        '/api/openai/friede': handleFriedeInterview,
-        '/api/openai/coding-hints': handleCodingHints,
-      };
-
-      for (const [route, handler] of Object.entries(routes)) {
-        server.middlewares.use(route, async (req: IncomingMessage, res: ServerResponse, next: () => void) => {
-          if (req.method !== 'POST') return next();
-
-          // Check if API key is configured
-          if (!apiKey) {
-            return sendJSON(res, 503, {
-              success: false,
-              error: 'OpenAI API key not configured. Add OPENAI_API_KEY to your .env file.',
-            });
-          }
-
-          // Check rate limits
-          const rateCheck = checkRateLimit();
-          if (!rateCheck.allowed) {
-            res.writeHead(429, {
-              'Content-Type': 'application/json',
-              'Retry-After': String(rateCheck.retryAfter || 1),
-            });
-            res.end(JSON.stringify({
-              success: false,
-              error: rateCheck.error,
-              retryAfter: rateCheck.retryAfter,
-              ...getRateLimitInfo(),
-            }));
-            return;
-          }
-
-          try {
-            const body = await parseRequestBody(req);
-            await handler(apiKey, body, res);
-          } catch (error: any) {
-            sendJSON(res, 500, {
-              success: false,
-              error: error.message || 'Internal server error',
-            });
-          }
-        });
-      }
+      initKey();
+      setupOpenaiRoutes(server);
     },
   };
 }
