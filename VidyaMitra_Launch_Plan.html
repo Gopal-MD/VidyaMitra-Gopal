@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VidyaMitra — Complete Product Launch Plan</title>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --primary: #4F46E5; --primary-light: #EEF2FF;
+    --danger: #DC2626; --danger-bg: #FEF2F2;
+    --warning: #D97706; --warning-bg: #FFFBEB;
+    --success: #059669; --success-bg: #ECFDF5;
+    --info: #2563EB; --info-bg: #EFF6FF;
+    --gray-50: #F9FAFB; --gray-100: #F3F4F6;
+    --gray-200: #E5E7EB; --gray-300: #D1D5DB;
+    --gray-600: #4B5563; --gray-700: #374151;
+    --gray-800: #1F2937; --gray-900: #111827;
+  }
+  body { font-family: 'Inter', sans-serif; color: var(--gray-800); line-height: 1.6; font-size: 11pt; max-width: 900px; margin: 0 auto; padding: 40px; }
+  h1 { color: var(--primary); font-size: 28pt; font-weight: 800; border-bottom: 3px solid var(--primary-light); padding-bottom: 10px; margin-top: 0; }
+  h2 { color: var(--primary); font-size: 18pt; margin-top: 30px; border-bottom: 2px solid var(--gray-200); padding-bottom: 5px; page-break-after: avoid; }
+  h3 { color: var(--gray-800); font-size: 14pt; margin-top: 20px; page-break-after: avoid; }
+  h4 { color: var(--gray-700); font-size: 12pt; margin-top: 15px; }
+  table { width: 100%; border-collapse: collapse; margin: 15px 0; font-size: 9.5pt; page-break-inside: auto; }
+  th, td { padding: 8px 12px; text-align: left; border: 1px solid var(--gray-200); }
+  th { background: var(--primary); color: white; }
+  tr:nth-child(even) { background: var(--gray-50); }
+  code { background: var(--gray-100); padding: 2px 5px; border-radius: 4px; font-family: Consolas, monospace; font-size: 9pt; }
+  pre { background: var(--gray-900); color: white; padding: 15px; border-radius: 8px; overflow-x: auto; font-family: Consolas, monospace; font-size: 9pt; page-break-inside: avoid; }
+  pre code { background: none; color: inherit; padding: 0; }
+  blockquote { border-left: 4px solid var(--gray-300); padding-left: 15px; margin-left: 0; color: var(--gray-600); }
+  .alert { padding: 12px 16px; border-radius: 8px; margin: 15px 0; font-size: 10pt; border-left: 4px solid; page-break-inside: avoid; }
+  .alert-danger { background: var(--danger-bg); border-color: var(--danger); }
+  .alert-warning { background: var(--warning-bg); border-color: var(--warning); }
+  .alert-info { background: var(--info-bg); border-color: var(--info); }
+  .alert-success { background: var(--success-bg); border-color: var(--success); }
+  .print-btn { position: fixed; top: 20px; right: 20px; background: var(--primary); color: white; border: none; padding: 12px 24px; border-radius: 8px; font-size: 12pt; font-weight: bold; cursor: pointer; z-index: 1000; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+  @media print { .no-print { display: none; } body { padding: 20px; } h2, h3 { page-break-after: avoid; } table, pre, .alert { page-break-inside: avoid; } }
+</style>
+</head>
+<body>
+  <div class="no-print">
+    <button class="print-btn" onclick="window.print()">📄 Save as PDF (Ctrl+P)</button>
+    <p style="color: var(--danger); font-weight: bold; margin-bottom: 20px;">Ensure "Background graphics" is checked in your print settings!</p>
+  </div>
+  <div id="content"></div>
+
+<textarea id="markdown-content" style="display:none;">
+# 🚀 VidyaMitra — Complete Product Launch Plan
+## Under **Auranex** (MMU Startup Company)
+
+---
+
+## 📋 TABLE OF CONTENTS
+1. [Project Analysis & Tech Stack](#1-project-analysis--tech-stack)
+2. [Third-Party Services Audit (Free vs Paid)](#2-third-party-services-audit)
+3. [Supabase Production Costs](#3-supabase-production-costs)
+4. [Cloud Hosting Recommendation](#4-cloud-hosting-recommendation)
+5. [🔒 Security Audit](#5-security-audit)
+6. [🖥️ EC2 Code Execution (Judge0)](#6-ec2-code-execution-judge0)
+7. [Total Monthly Operational Budget](#7-total-monthly-operational-budget)
+8. [College Fund Request (₹10L Budget)](#8-college-fund-request)
+9. [Subscription Pricing Strategy](#9-subscription-pricing-strategy)
+10. [ROI & Turnover Projections](#10-roi--turnover-projections)
+11. [Investor Perspective & Pitch](#11-investor-perspective--pitch)
+12. [12-Month Launch Roadmap](#12-12-month-launch-roadmap)
+
+---
+
+## 1. Project Analysis & Tech Stack
+
+### What is VidyaMitra?
+An **AI-powered placement preparation & interview platform** for students and institutions. Think "Naukri + InterviewBit + Proctoring" in one platform — but with AI voice interviews, resume analysis, gap analysis, and institution-level subscription management.
+
+### Core Tech Stack
+| Layer | Technology |
+|-------|-----------|
+| Frontend | React 18 + TypeScript + Vite |
+| UI Library | shadcn/ui + Tailwind CSS + Framer Motion |
+| Backend | Node.js (Vite Plugin server) |
+| Database | Supabase (PostgreSQL) + SQLite (local dev) |
+| Auth | Custom JWT-based session management |
+| Payments | Razorpay (Live keys active) |
+| Routing | React Router v6 |
+
+### Feature Inventory (30+ Pages/Features)
+
+| Feature | Description | AI Service Used |
+|---------|-------------|-----------------|
+| AI Interview (Text) | AI generates questions & evaluates answers | Gemini / OpenAI / Groq |
+| AI Interview (Voice) — FRIEDE | Voice-based AI interviewer with avatar | ElevenLabs Conversational AI |
+| Bot Interviewer | Conversational interview with FRIEDE bot | Gemini + OpenAI |
+| Company Interview | Role-specific multi-round interview | Gemini |
+| Mock Interview | Practice interviews | Gemini |
+| Smart Resume Builder | AI-powered resume creation | Gemini |
+| Resume ATS Analyzer | ATS scoring with role-specific analysis | Groq / Gemini |
+| Career Planner | AI roadmap + Mermaid charts | Groq (Mermaid) + YouTube API |
+| Gap Analysis | Skill gap identification + learning roadmap | Groq (dedicated key) |
+| Profile Analyzer | GitHub analysis + skill assessment | GitHub API + Groq/Gemini |
+| Coding Practice | Code editor + execution | Judge0 (RapidAPI + self-hosted) |
+| Aptitude Practice | MCQ-based aptitude tests | Gemini |
+| Round 1 Aptitude | Proctored aptitude test for placement | Gemini + TensorFlow.js |
+| Job Board | Live job listings | JSearch (RapidAPI) |
+| Skill Trends | Industry skill trends + news | News API + Pexels + Exchange Rate |
+| Proctoring | AI-powered exam surveillance | TensorFlow.js (client) + AWS Rekognition |
+| ChatBot (MitoiChat) | In-app AI assistant | Gemini (chatbot key) |
+| Admin Dashboard | Full admin panel with analytics | — |
+| Institution Dashboard | Institution-level management | — |
+| Subscription Management | Razorpay payments + usage tracking | Razorpay |
+| S3 File Manager | Resume/file uploads | AWS S3 |
+| SNS Marketing | Email marketing via topics | AWS SNS |
+| Email Notifications | Round 2 emails, alerts | EmailJS + AWS SES |
+| Platform Collaboration | Partner platform integration | — |
+| Learning Recommendations | Course recommendations | YouTube API + Groq |
+
+---
+
+## 2. Third-Party Services Audit
+
+> [!CAUTION]
+> **CRITICAL**: You are currently using **18+ third-party services**, many on **free tiers** that will NOT sustain production load. Below is the complete audit with current vs required tier costs.
+
+### 🔴 AI/ML Services (HIGHEST COST)
+
+| # | Service | Current Tier | Free Limit | Production Need | Paid Plan | Monthly Cost (₹) |
+|---|---------|-------------|------------|-----------------|-----------|-------------------|
+| 1 | **Google Gemini API** (4 keys) | Free | 15 RPM / 1500 req/day | 5,000+ req/day | Pay-as-you-go | ₹2,000–5,000 |
+| 2 | **Groq API** (3 keys) | Free | 30 RPM / 14,400 req/day | High volume | Free tier sufficient initially | ₹0 (free) |
+| 3 | **OpenAI API** (GPT-4.1-mini) | Pay-per-use | No free tier | Interview evaluation | Pay-as-you-go | ₹3,000–8,000 |
+| 4 | **ElevenLabs** (Voice AI) | Free | 10,000 chars/month | 100+ voice interviews/month | Starter ($5) / Creator ($22) | ₹450–1,850 |
+| 5 | **TensorFlow.js** | Open source | Unlimited (client-side) | Client-side proctoring | Free forever | ₹0 |
+
+### 🟡 API Services (MODERATE COST)
+
+| # | Service | Current Tier | Free Limit | Production Need | Paid Plan | Monthly Cost (₹) |
+|---|---------|-------------|------------|-----------------|-----------|-------------------|
+| 6 | **YouTube Data API v3** | Free | 10,000 units/day | Course recommendations | Free (10K/day is plenty) | ₹0 |
+| 7 | **Pexels API** | Free | 200 req/hour | Image backgrounds | Free (enough) | ₹0 |
+| 8 | **NewsAPI** | Free | 100 req/day | Skill trends | Developer ($449/mo) or free | ₹0–37,500 |
+| 9 | **ExchangeRate API** | Free | 1,500 req/month | Salary conversion | Free (enough) | ₹0 |
+| 10 | **JSearch (RapidAPI)** | Free | 200 req/month | Job board listings | Basic ($10/mo) | ₹850 |
+| 11 | **Judge0 (RapidAPI)** | Free + Self-hosted | 50 req/day (RapidAPI) | Code execution | Basic ($10/mo) or self-hosted | ₹850 |
+| 12 | **GitHub API** | Free | 5,000 req/hr (with token) | Profile analysis | Free (with PAT) | ₹0 |
+
+### 🟢 Infrastructure Services (CRITICAL)
+
+| # | Service | Current Tier | Free Limit | Production Need | Paid Plan | Monthly Cost (₹) |
+|---|---------|-------------|------------|-----------------|-----------|-------------------|
+| 13 | **Supabase** (Database) | Free | 500MB DB, 1GB storage, 2 Edge func | Full production DB | Pro ($25/mo) | ₹2,100 |
+| 14 | **AWS S3** | Pay-per-use | 5GB (12 mo free tier) | File/resume storage | Standard | ₹500–2,000 |
+| 15 | **AWS Rekognition** | Pay-per-use | 5,000 img/mo (12 mo free) | Proctoring face detection | Pay-per-use | ₹1,000–5,000 |
+| 16 | **AWS SES** | Pay-per-use | 62,000 emails/mo (from EC2) | Transactional emails | $0.10/1000 emails | ₹200–500 |
+| 17 | **AWS SNS** | Pay-per-use | 1M publishes free | Marketing emails | Free tier enough | ₹0–200 |
+| 18 | **AWS Lambda** (Textract) | Pay-per-use | 1M req/mo free | Resume parsing | Free tier enough | ₹0–100 |
+
+### 🔵 Communication & Payments
+
+| # | Service | Current Tier | Free Limit | Production Need | Paid Plan | Monthly Cost (₹) |
+|---|---------|-------------|------------|-----------------|-----------|-------------------|
+| 19 | **EmailJS** | Free | 200 emails/month | Send Round 2 emails | Personal ($10/mo) | ₹850 |
+| 20 | **Razorpay** | Live (Active) | 2% per txn (no monthly fee) | Payment gateway | Standard (2%) | ₹0 (only txn fee) |
+
+> [!IMPORTANT]
+> **NewsAPI**: The free tier only works on localhost. In production, you MUST either subscribe ($449/mo = ₹37,500 — too expensive) or **replace it with a free alternative** like GNews API or scraping Google News RSS. **Recommendation: Switch to GNews API (free 100 req/day, enough for your use case).**
+
+---
+
+## 3. Supabase Production Costs
+
+> [!WARNING]
+> Your current Supabase is on the **Free plan**. For production, you MUST upgrade.
+
+| Feature | Free Plan | Pro Plan ($25/mo = ₹2,100) | Team Plan ($599/mo = ₹50,000) |
+|---------|-----------|---------------------------|------------------------------|
+| Database Size | 500 MB | 8 GB | 100 GB |
+| Storage | 1 GB | 100 GB | 200 GB |
+| Bandwidth | 2 GB | 250 GB | 500 GB |
+| Edge Functions | 500K invocations | 2M invocations | 5M invocations |
+| Auth Users | Unlimited | Unlimited | Unlimited |
+| Realtime | 200 connections | 500 connections | 1000 connections |
+| Daily Backups | No | Yes ✅ | Yes + PITR ✅ |
+| SLA | None | 99.9% | 99.95% |
+
+### 🎯 **Recommendation: Start with Pro Plan ($25/mo = ₹2,100/mo)**
+- 8GB DB handles 50,000+ users easily
+- 100GB storage for resumes/files
+- Daily backups for data safety
+- Upgrade to Team only when hitting 1000+ concurrent institutions
+
+---
+
+## 4. Cloud Hosting Recommendation
+
+> [!IMPORTANT]
+> You asked for "reliable hosting to handle large users without server/infrastructure headache." Here's the analysis:
+
+### Option Comparison
+
+| Platform | Type | Why Good for VidyaMitra | Monthly Cost | Scaling | Complexity |
+|----------|------|------------------------|-------------|---------|-----------|
+| **Vercel** ⭐ | Serverless | Built for React/Vite, auto-scaling, global CDN | Free → $20/mo (Pro) | Auto | ⭐ Easiest |
+| **Railway** | PaaS | Full Node.js server support, easy deploy | $5 → $20/mo | Auto | ⭐⭐ Easy |
+| **Render** | PaaS | Free tier available, good for Node backends | Free → $7/mo | Auto | ⭐⭐ Easy |
+| **AWS Amplify** | Serverless | Full AWS integration (S3, Rekognition already used) | $0 → $15/mo | Auto | ⭐⭐⭐ Medium |
+| **DigitalOcean App Platform** | PaaS | Predictable pricing, good support | $5 → $12/mo | Manual → Auto | ⭐⭐ Easy |
+| **AWS EC2** | IaaS | Full control | $10 → $50/mo | Manual | ⭐⭐⭐⭐⭐ Hard |
+
+### 🎯 **Recommendation: Vercel (Frontend) + Railway (Backend)**
+
+**Why this combo?**
+
+```
+┌─────────────────────────────────────────┐
+│           PRODUCTION ARCHITECTURE        │
+├─────────────────────────────────────────┤
+│                                         │
+│  Vercel (Frontend)     Railway (Backend) │
+│  ├─ React SPA          ├─ Node.js API   │
+│  ├─ Global CDN         ├─ Express server│
+│  ├─ Auto HTTPS         ├─ Auto HTTPS    │
+│  ├─ Edge caching       ├─ Auto scaling  │
+│  └─ $20/mo Pro         └─ $5-20/mo      │
+│                                         │
+│            ↕ API calls ↕                │
+│                                         │
+│  Supabase (Database)   AWS (Services)   │
+│  ├─ PostgreSQL          ├─ S3 (files)   │
+│  ├─ Auth                ├─ SES (email)  │
+│  ├─ Edge Functions      ├─ Rekognition  │
+│  └─ $25/mo Pro          └─ Pay-per-use  │
+│                                         │
+└─────────────────────────────────────────┘
+```
+
+**Key benefits:**
+- **Zero DevOps** — no server management, no Docker, no Kubernetes
+- **Auto-scaling** — handles traffic spikes during placement season
+- **Global CDN** — fast for users across India
+- **99.99% uptime** — Vercel + Railway SLA
+- **Git-based deployment** — push to main = auto deploy
+
+---
+
+## 5. 🔒 Security Audit
+
+> [!CAUTION]
+> Your project has **5 critical security vulnerabilities** that MUST be fixed before launch. The good news: **all fixes are FREE** — they're just code changes + free libraries.
+
+### ✅ What You Already Have (Good Stuff)
+
+| Area | Status | Details |
+|------|--------|---------|
+| **Password Hashing** | ✅ Strong | PBKDF2 with SHA-512, 100,000 iterations, random salt — industry standard |
+| **Server-side API Key Proxy** | ✅ Good | Gemini, YouTube, Pexels, News, Judge0 keys stay on server — never reach browser |
+| **Code Execution Sandboxing** | ✅ Good | Dangerous pattern detection (`child_process`, `subprocess`, `system()`) + max code length limit |
+| **File Upload Sanitization** | ✅ Good | S3 uploads sanitize filenames, validate folder prefixes |
+| **Body Size Limit** | ✅ Good | `parseBody()` rejects bodies >2MB |
+| **Rekognition Image Size** | ✅ Good | Validates <5MB before sending to AWS |
+| **`.env` in `.gitignore`** | ✅ Good | `.env`, `.env.local`, `.env.production` are ignored |
+| **AWS Secrets Manager** | ✅ Built | `secretsManager.ts` supports AWS Parameter Store (disabled but ready) |
+| **Parameterized Queries** | ✅ Mostly | Uses `?` placeholders in SQL via Supabase adapter |
+
+### 🚨 CRITICAL Vulnerabilities (Fix Before Launch)
+
+#### 1. 🔴 API Keys Exposed in Client Bundle (CRITICAL)
+
+Your **Gemini, Groq, JSearch (RapidAPI), and GitHub keys** are loaded via `VITE_*` prefix — meaning they're **embedded in the JavaScript bundle anyone can download** from browser DevTools.
+
+**Exposed keys found in frontend code:**
+- `VITE_GEMINI_API_KEY` — in `src/config/apiKeys.ts`
+- `VITE_GEMINI_CHATBOT_API_KEY` — in `src/utils/mitoiService.ts`
+- `VITE_GEMINI_FRIEDE_API_KEY` — in `src/config/apiKeys.ts`
+- `VITE_GROQ_API_KEY` (2 keys) — in `src/utils/groqService.ts`, `src/utils/auraSkillService.ts`
+- `VITE_JSEARCH_RAPIDAPI_KEY` — in `src/pages/JobBoard.tsx`
+- `VITE_GITHUB_API_KEY` — in `src/utils/profileAnalyzerService.ts`
+
+**Risk:** Anyone opens DevTools → Sources → finds your API keys → uses them. You get billed.
+
+**Fix:** Move ALL API calls through your server proxy (like you already did for YouTube/Pexels/News). **Cost: ₹0**
+
+#### 2. 🔴 Sessions Never Expire (CRITICAL)
+
+In `server/apiServer.ts`, sessions are created with `generateId()` and stored in a Map + DB — but **there's no expiry time, no TTL, no cleanup**. Once a token is created, it's valid **forever**.
+
+**Risk:** If a session token is stolen (XSS, shared computer, network sniffing), the attacker has permanent access.
+
+**Fix:** Add `created_at` check — reject tokens older than 24-48 hours. **Cost: ₹0**
+
+#### 3. 🔴 CORS Wildcard `Access-Control-Allow-Origin: *` (HIGH)
+
+In `server/apiServer.ts`, CORS allows **any origin**. Any website on the internet can make API calls to your backend.
+
+**Risk:** CSRF attacks, unauthorized API access from any domain.
+
+**Fix:** Restrict to your domain only: `Access-Control-Allow-Origin: https://vidyamitra.com`. **Cost: ₹0**
+
+#### 4. 🔴 Hardcoded Default Passwords (HIGH)
+
+In `server/db.ts`:
+- Admin: `admin@vidyamitra.com / admin@123`
+- All institutions: `institution@123`
+
+**Risk:** Anyone who reads your code knows the admin login.
+
+**Fix:** Remove seed data OR force password change on first login. **Cost: ₹0**
+
+#### 5. 🔴 Hardcoded Judge0 IP Address (HIGH)
+
+In `server/apiServer.ts`: `JUDGE0_HOST: 'http://54.234.23.242:2358'`
+
+**Risk:** IP is publicly visible, unencrypted HTTP (not HTTPS), anyone can submit code to your Judge0 instance.
+
+**Fix:** Put behind a domain + HTTPS + authentication. **Cost: ₹0-500**
+
+### 🟡 Missing Security Layers (Add Before Launch)
+
+| # | What's Missing | Risk | Fix | Cost |
+|---|---------------|------|-----|------|
+| 1 | **No Helmet.js** | Missing security headers (X-Frame-Options, CSP, HSTS) | `npm install helmet` + add middleware | ₹0 |
+| 2 | **No Server Rate Limiting** | API abuse, brute-force login attacks | `npm install express-rate-limit` — limit 100 req/min per IP | ₹0 |
+| 3 | **No CSRF Protection** | Cross-site request forgery on state-changing endpoints | Add CSRF tokens for POST/PUT/DELETE | ₹0 |
+| 4 | **No Input Validation Library** | SQL injection, XSS via untrusted input | `npm install zod` — validate all request bodies | ₹0 |
+| 5 | **No HTTPS Enforcement** | Tokens sent in plaintext over HTTP | Vercel/Railway handle this automatically | ₹0 |
+| 6 | **No Brute-Force Protection** | Unlimited login attempts | Add login attempt counter + lockout after 5 fails | ₹0 |
+| 7 | **No Content Security Policy** | XSS attacks via injected scripts | Add CSP header via Helmet | ₹0 |
+| 8 | **No Audit Logging** | Can't trace who did what and when | Log auth events, admin actions to DB table | ₹0 |
+| 9 | **No Data Encryption at Rest** | DB data readable if server compromised | Supabase Pro includes encryption at rest ✅ | Already in Supabase Pro |
+| 10 | **No Backup Strategy** | Data loss risk | Supabase Pro = daily backups ✅ + S3 versioning | ₹0 (Supabase Pro) |
+
+### 💰 Security Tools & Services — Cost Breakdown
+
+| Service | Purpose | Free Tier | Paid Tier | Recommended |
+|---------|---------|-----------|-----------|-------------|
+| **Helmet.js** | Security headers | ✅ Free forever | — | ✅ Use free |
+| **express-rate-limit** | API rate limiting | ✅ Free forever | — | ✅ Use free |
+| **Zod** | Input validation | ✅ Free forever | — | ✅ Use free |
+| **Let's Encrypt** | SSL/TLS certificates | ✅ Free forever | — | ✅ Vercel does this auto |
+| **Cloudflare** (DNS + WAF) | DDoS protection, WAF, CDN | ✅ Free plan (plenty) | $20/mo | ✅ Use free |
+| **Sentry** | Error monitoring + alerting | ✅ Free (5K events/mo) | $26/mo | ✅ Use free tier |
+| **OWASP ZAP** | Security scanning | ✅ Free forever | — | ✅ Use free |
+| **GitHub Dependabot** | Dependency vulnerability alerts | ✅ Free | — | ✅ Enable in GitHub |
+| **Supabase RLS** | Row-Level Security (Postgres) | ✅ Included | — | ✅ Must configure |
+
+> [!IMPORTANT]
+> **Total additional security cost: ₹0.** All critical security can be done with free tools and code changes. The only "paid" security is from Supabase Pro (encryption at rest, daily backups) which you're already buying.
+
+---
+
+## 6. 🖥️ EC2 Code Execution (Judge0)
+
+### Current Setup
+You already have Judge0 running on an AWS EC2 instance at `54.234.23.242:2358` as the **primary** code execution engine, with RapidAPI as fallback. This is a solid architecture — EC2 self-hosting gives you **unlimited executions** vs RapidAPI's 200/day cap.
+
+### EC2 Instance Recommendation for Production
+
+| Instance Type | vCPUs | RAM | Price/mo (Mumbai) | Best For |
+|--------------|-------|-----|-------------------|----------|
+| `t3.micro` | 2 | 1GB | ₹800 (~$10) | Dev/testing only |
+| **`t3.small`** ⭐ | 2 | 2GB | ₹1,600 (~$19) | **0-1,000 users (Launch)** |
+| **`t3.medium`** | 2 | 4GB | ₹3,200 (~$38) | **1,000-5,000 users** |
+| `t3.large` | 2 | 8GB | ₹6,400 (~$76) | 5,000-20,000 users |
+| `c5.xlarge` | 4 | 8GB | ₹12,800 (~$153) | 20,000+ users (compute heavy) |
+
+### 🎯 Recommended: Start with `t3.small` (₹1,600/mo)
+
+### Production Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│              EC2 CODE EXECUTION ARCHITECTURE             │
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│  User Browser                                           │
+│       │                                                 │
+│       ▼                                                 │
+│  Railway Server (Node.js Backend)                       │
+│       │                                                 │
+│       ▼  POST /api/judge0/submit                        │
+│  ┌─────────────────────────────┐                        │
+│  │    EC2 Instance (t3.small)  │                        │
+│  │    ├─ Judge0 (Docker)       │                        │
+│  │    ├─ Security Group:       │                        │
+│  │    │  - Port 2358: Backend  │                        │
+│  │    │    IP only (not 0.0.0.0)│                       │
+│  │    ├─ Elastic IP (static)   │                        │
+│  │    ├─ Ubuntu 22.04 LTS      │                        │
+│  │    └─ Docker + Docker Compose│                       │
+│  └─────────────────────────────┘                        │
+│       │                                                 │
+│       ▼ Fallback (if EC2 fails)                         │
+│  RapidAPI Judge0 (pay-per-use)                          │
+│                                                         │
+└─────────────────────────────────────────────────────────┘
+```
+
+### EC2 Monthly Cost Breakdown
+
+| Item | Cost/mo |
+|------|---------|
+| EC2 t3.small (On-Demand, Mumbai) | ₹1,600 |
+| EBS Storage (30GB SSD) | ₹250 |
+| Elastic IP | ₹0 (free if attached) |
+| Data Transfer (50GB out) | ₹400 |
+| **TOTAL** | **₹2,250/mo** |
+
+**Savings vs RapidAPI:**
+- RapidAPI Judge0 Basic = $10/mo for 200 req/day cap
+- EC2 self-hosted = **unlimited** requests for ₹2,250/mo
+- At 500+ code executions/day, EC2 saves 60-80%
+
+### EC2 Security Hardening Checklist
+
+| # | Task | Priority |
+|---|------|----------|
+| 1 | **Security Groups** — allow port 2358 ONLY from Railway server IP | 🔴 Critical |
+| 2 | **HTTPS** — Nginx reverse proxy + Let's Encrypt SSL in front of Judge0 | 🔴 Critical |
+| 3 | **Auth token** — Add `X-Auth-Token` header validation to Judge0 | 🟡 Important |
+| 4 | **Disable SSH password login** — use SSH key only | 🟡 Important |
+| 5 | **Auto security patches** — `unattended-upgrades` on Ubuntu | 🟡 Important |
+| 6 | **Docker resource limits** — `--memory=512m --cpus=1` per container | 🟡 Important |
+| 7 | **CloudWatch monitoring** — alert if CPU >80% or instance down | 🟢 Nice to have |
+| 8 | **Weekly AMI backup** — snapshots in case instance dies | 🟢 Nice to have |
+
+### Scaling Strategy
+
+| Users | EC2 Instance | Judge0 Workers | Concurrent Executions |
+|-------|-------------|----------------|----------------------|
+| 0-1,000 | 1× t3.small | 2 workers | ~10 simultaneous |
+| 1K-5K | 1× t3.medium | 4 workers | ~20 simultaneous |
+| 5K-20K | 1× t3.large + Auto Scaling Group | 8 workers | ~50 simultaneous |
+| 20K+ | 2× c5.xlarge + Load Balancer | 16 workers | ~100+ simultaneous |
+
+---
+
+## 7. Total Monthly Operational Budget
+
+### Scenario A: Launch Phase (0-500 users) — MINIMUM
+
+| Service | Monthly Cost (₹) |
+|---------|-------------------|
+| Gemini API (pay-as-you-go) | ₹2,000 |
+| OpenAI API | ₹3,000 |
+| ElevenLabs (Starter) | ₹450 |
+| Groq API | ₹0 (free) |
+| Supabase Pro | ₹2,100 |
+| Vercel Pro | ₹1,700 |
+| Railway (Backend) | ₹900 |
+| AWS S3 + SES + SNS | ₹700 |
+| AWS Rekognition | ₹1,000 |
+| **AWS EC2 (Judge0 self-hosted)** | **₹2,250** |
+| EmailJS (Personal) | ₹850 |
+| JSearch RapidAPI | ₹850 |
+| Domain Name (.com + .in) | ₹200 |
+| Security tools (Cloudflare, Sentry, etc.) | ₹0 (all free) |
+| **Miscellaneous/Buffer** | ₹2,000 |
+| **TOTAL** | **₹18,000/mo** |
+
+### Scenario B: Growth Phase (500-5,000 users) — RECOMMENDED BUDGET
+
+| Service | Monthly Cost (₹) |
+|---------|-------------------|
+| Gemini API | ₹5,000 |
+| OpenAI API | ₹8,000 |
+| ElevenLabs (Creator) | ₹1,850 |
+| Groq API | ₹0 (free) |
+| Supabase Pro | ₹2,100 |
+| Vercel Pro | ₹1,700 |
+| Railway (Pro) | ₹1,700 |
+| AWS Services (S3+SES+Rekognition) | ₹5,000 |
+| **AWS EC2 (Judge0 — t3.medium upgrade)** | **₹3,450** |
+| EmailJS (Professional) | ₹2,100 |
+| JSearch RapidAPI | ₹850 |
+| Domain + SSL | ₹200 |
+| Security tools | ₹0 (all free) |
+| Marketing (Social, Google Ads) | ₹5,000 |
+| **Buffer** | ₹3,000 |
+| **TOTAL** | **₹39,950/mo** |
+
+### Scenario C: Scale Phase (5,000-50,000 users)
+
+| Service | Monthly Cost (₹) |
+|---------|-------------------|
+| AI APIs (Gemini+OpenAI+ElevenLabs) | ₹25,000 |
+| Supabase Team | ₹50,000 |
+| Vercel Enterprise | ₹8,500 |
+| Railway Pro + Workers | ₹5,000 |
+| **AWS EC2 (Judge0 — t3.large + ASG)** | **₹8,500** |
+| AWS Services Bundle (S3+SES+Rekognition) | ₹15,000 |
+| All SaaS APIs | ₹8,000 |
+| Marketing | ₹20,000 |
+| Support Team (1 person) | ₹25,000 |
+| **TOTAL** | **₹1,65,000/mo** |
+
+---
+
+## 8. College Fund Request (₹10L Budget)
+
+> [!IMPORTANT]
+> Your college provides max **₹10 Lakhs**. Here's exactly how to allocate it for **12 months** of runway.
+
+### 💰 Recommended Ask: ₹7,50,000 (₹7.5L)
+
+> Leave ₹2.5L buffer in the college fund for contingencies. Asking for ₹7.5L looks more realistic and professional than asking for the full ₹10L.
+
+### Budget Allocation Breakdown
+
+| Category | Amount (₹) | % of Total | Details |
+|----------|-----------|-----------|---------|
+| **Cloud Infrastructure** (12 months) | ₹90,000 | 12% | Supabase Pro + Vercel + Railway |
+| **AI API Credits** (12 months) | ₹1,80,000 | 24% | Gemini + OpenAI + ElevenLabs + Groq |
+| **AWS Services** (12 months) | ₹60,000 | 8% | S3, SES, Rekognition, Lambda |
+| **AWS EC2 — Judge0** (12 months) | ₹27,000 | 3.6% | t3.small self-hosted code execution |
+| **Third-Party APIs** (12 months) | ₹30,000 | 4% | JSearch, EmailJS, etc. |
+| **Domain & SSL** | ₹3,000 | 0.4% | vidyamitra.com + .in |
+| **Security** | ₹0 | 0% | All tools are free (Helmet, Cloudflare, Sentry, etc.) |
+| **Marketing & Launch** | ₹60,000 | 8% | Social media ads, campus events, collateral |
+| **Legal & Compliance** | ₹30,000 | 4% | GST registration, T&C, Privacy Policy, DPIIT |
+| **Design Assets** | ₹15,000 | 2% | Logo refinement, branding, pitch deck |
+| **Contingency Fund** | ₹50,000 | 6.7% | Unexpected API overages, emergency hosting |
+| **Team Operations** | ₹1,00,000 | 13.3% | Hackathons, conferences, travel, team tools |
+| **Startup Registration** | ₹15,000 | 2% | DPIIT, MCA, trademark |
+| **Unallocated Reserve** | ₹90,000 | 12% | Rollover for Year 2 or reinvestment |
+| **TOTAL** | **₹7,50,000** | **100%** | |
+
+### What to Present to College
+
+```
+📊 FUND UTILIZATION SUMMARY
+────────────────────────────
+Total Ask:        ₹7,50,000
+Runway:           12 months (July 2026 – June 2027)
+Burn Rate:        ~₹18,000/month (Scenario A)
+Break-even Target: Month 8 (February 2027)
+Expected Revenue:  ₹2,00,000+ by Month 12
+
+KEY METRICS TO COMMIT:
+✅ 10 institutions onboarded in 6 months
+✅ 5,000 student users in 12 months
+✅ Revenue positive by Month 8
+✅ ₹5L+ annual revenue by Year 1 end
+```
+
+---
+
+## 9. Subscription Pricing Strategy
+
+### 🔴 Problem with Current Institution Pricing
+
+Your current plans (₹1,999 – ₹49,999/mo) are **institution-only**. You're missing the **massive B2C market** of individual students. Most EdTech revenue comes from individual subscriptions.
+
+### ✅ New Pricing Architecture: Freemium + B2C + B2B
+
+---
+
+### A. Individual Student Plans (B2C — NEW)
+
+| Plan | Price | Billing | Features | Limitations |
+|------|-------|---------|----------|-------------|
+| **Free** | ₹0 | — | 3 AI interviews/month, 2 resume scans/month, 5 aptitude tests/month, Basic chatbot, No voice AI | Watermark on reports, No export, Ads |
+| **Pro** | ₹199/mo | Monthly | 30 interviews/month, Unlimited resume scans, Unlimited aptitude, Voice AI (FRIEDE) — 5 sessions/mo, Career planner, PDF exports, Priority AI (faster responses), No ads | — |
+| **Pro Annual** | ₹1,499/yr | Annual (save 37%) | Same as Pro + 2 months free | — |
+| **Premium** | ₹499/mo | Monthly | Unlimited everything, Voice AI — unlimited, Job board premium filters, GitHub profile analyzer, 1-on-1 mock (coming), Priority support | — |
+| **Premium Annual** | ₹3,999/yr | Annual (save 33%) | Same as Premium + 2 months free | — |
+
+**Why these prices?**
+- ₹199/mo = price of a coffee/week — affordable for any college student
+- ₹499/mo = still cheaper than any coaching class
+- Annual plans boost retention and cash flow
+- Free tier creates viral growth (students share with friends)
+
+---
+
+### B. Institution Plans (B2B — IMPROVED)
+
+| Plan | Price/Month | Price/Year | Students | Interviews/mo | Voice AI | Key Features |
+|------|------------|-----------|----------|---------------|----------|-------------|
+| **Starter** | ₹4,999 | ₹49,999 | Up to 200 | 500 | ❌ | Dashboard, Email support, CSV exports |
+| **Professional** | ₹14,999 | ₹1,49,999 | Up to 500 | 1,500 | 100/mo | Analytics, Priority support (24hr), Custom branding |
+| **Enterprise** | ₹29,999 | ₹2,99,999 | Up to 2,000 | 5,000 | Unlimited | API access, Webhooks, Dedicated manager, SSO |
+| **Custom** | Contact Sales | Negotiable | Unlimited | Unlimited | Unlimited | White-label, Custom integrations, SLA guarantee |
+
+**Why different from current pricing?**
+- Your current ₹1,999/mo Starter is **too cheap** — institutions expect to pay more for serious tools
+- ₹4,999/mo is still cheaper than hiring one placement officer
+- Enterprise at ₹29,999/mo is competitive with alternatives like mettl.com (₹50K+/mo)
+
+---
+
+### C. Feature Gating Logic
+
+```
+┌────────────────────────────────────────────────────────┐
+│                    FEATURE GATES                        │
+├──────────────────┬──────┬──────┬─────────┬─────────────┤
+│ Feature          │ Free │ Pro  │ Premium │ Institution │
+├──────────────────┼──────┼──────┼─────────┼─────────────┤
+│ AI Interviews    │  3   │  30  │   ∞     │  Plan limit │
+│ Resume Scans     │  2   │  ∞   │   ∞     │  ∞          │
+│ Aptitude Tests   │  5   │  ∞   │   ∞     │  ∞          │
+│ Voice AI (FRIEDE)│  ❌  │  5   │   ∞     │  Plan limit │
+│ Career Planner   │  ❌  │  ✅  │   ✅    │  ✅         │
+│ Gap Analysis     │  ❌  │  ✅  │   ✅    │  ✅         │
+│ Job Board        │ Basic│ Full │ Premium │  Full       │
+│ GitHub Analyzer  │  ❌  │  ❌  │   ✅    │  ✅         │
+│ Coding Practice  │  3   │  ∞   │   ∞     │  ∞          │
+│ PDF Export       │  ❌  │  ✅  │   ✅    │  ✅         │
+│ Proctoring       │  ❌  │  ❌  │   ❌    │  ✅         │
+│ Admin Dashboard  │  ❌  │  ❌  │   ❌    │  ✅         │
+│ Analytics        │  ❌  │  ❌  │   ❌    │  Pro+ only  │
+│ Ads              │  ✅  │  ❌  │   ❌    │  ❌         │
+└──────────────────┴──────┴──────┴─────────┴─────────────┘
+```
+
+---
+
+## 10. ROI & Turnover Projections
+
+### Year 1 Revenue Model (Conservative)
+
+```
+MONTH 1-3: Launch Phase (₹0 revenue — building user base)
+├─ Free users: 500 → 2,000
+├─ Pro subscribers: 0
+├─ Institutions: 0
+└─ Focus: Campus events, social media, referrals
+
+MONTH 4-6: Early Traction
+├─ Free users: 2,000 → 5,000
+├─ Pro subscribers: 50 → 150
+├─ Premium subscribers: 10 → 30
+├─ Institutions: 2 → 5
+└─ Monthly Revenue: ₹30,000 → ₹1,50,000
+
+MONTH 7-9: Growth Phase
+├─ Free users: 5,000 → 15,000
+├─ Pro subscribers: 150 → 400
+├─ Premium subscribers: 30 → 80
+├─ Institutions: 5 → 10
+└─ Monthly Revenue: ₹1,50,000 → ₹4,00,000
+
+MONTH 10-12: Scale Phase
+├─ Free users: 15,000 → 30,000
+├─ Pro subscribers: 400 → 800
+├─ Premium subscribers: 80 → 150
+├─ Institutions: 10 → 20
+└─ Monthly Revenue: ₹4,00,000 → ₹8,00,000
+```
+
+### Year 1 Revenue Breakdown
+
+| Revenue Stream | Users | Price | Monthly Revenue | Annual Revenue |
+|---------------|-------|-------|-----------------|----------------|
+| Pro Monthly | 300 (avg) | ₹199 | ₹59,700 | ₹7,16,400 |
+| Pro Annual | 100 | ₹1,499/yr | ₹12,492 | ₹1,49,900 |
+| Premium Monthly | 60 (avg) | ₹499 | ₹29,940 | ₹3,59,280 |
+| Premium Annual | 30 | ₹3,999/yr | ₹9,998 | ₹1,19,970 |
+| Institution Starter | 5 | ₹4,999 | ₹24,995 | ₹2,99,940 |
+| Institution Professional | 3 | ₹14,999 | ₹44,997 | ₹5,39,964 |
+| Institution Enterprise | 1 | ₹29,999 | ₹29,999 | ₹3,59,988 |
+| **TOTAL** | | | **₹2,12,121** | **₹25,45,442** |
+
+### 📊 ROI Calculation
+
+```
+INVESTMENT (College Fund):           ₹7,50,000
+YEAR 1 REVENUE:                      ₹15,00,000 – ₹25,00,000
+YEAR 1 EXPENSES:                     ₹6,00,000 – ₹9,00,000
+  (includes EC2 + security infra)
+
+NET PROFIT (Year 1):                 ₹7,00,000 – ₹17,00,000
+ROI:                                 93% – 227%
+BREAK-EVEN:                          Month 6 – Month 8
+
+PAYBACK PERIOD:                      6-8 months
+```
+
+### Year 2-3 Projections
+
+| Metric | Year 1 | Year 2 | Year 3 |
+|--------|--------|--------|--------|
+| Free Users | 30,000 | 1,00,000 | 3,00,000 |
+| Paid Users (B2C) | 1,000 | 5,000 | 15,000 |
+| Institutions (B2B) | 20 | 80 | 200 |
+| Monthly Revenue | ₹8L | ₹25L | ₹80L |
+| Annual Revenue | ₹25L | ₹1.2Cr | ₹3.5Cr |
+| Annual Expenses | ₹8L | ₹40L | ₹1.2Cr |
+| **Net Profit** | **₹17L** | **₹80L** | **₹2.3Cr** |
+| **Team Size** | 2-3 | 5-8 | 15-20 |
+
+---
+
+## 11. Investor Perspective & Pitch
+
+### 🎓 For a College Student — What You Need to Know
+
+#### What is a Startup?
+A startup is a company designed to grow fast by solving a real problem. VidyaMitra solves: **"Indian students have no affordable, AI-powered tool to prepare for placements."**
+
+#### What is an Investor?
+Someone who gives you money in exchange for **equity** (% ownership). If VidyaMitra becomes worth ₹10 Crore, and they own 10%, their share is worth ₹1 Crore.
+
+#### Types of Funding Stages
+
+```
+┌──────────────────────────────────────────────────────────┐
+│                    FUNDING JOURNEY                        │
+├──────────────────────────────────────────────────────────┤
+│                                                          │
+│  ⭐ YOU ARE HERE                                         │
+│  ↓                                                       │
+│  1. College Grant (₹10L) — Non-dilutive (no equity)     │
+│  ↓                                                       │
+│  2. Pre-Seed (₹25-50L) — From angels, after traction    │
+│  ↓                                                       │
+│  3. Seed (₹1-3 Cr) — From VCs, after PMF                │
+│  ↓                                                       │
+│  4. Series A (₹10-30 Cr) — For scaling                   │
+│                                                          │
+└──────────────────────────────────────────────────────────┘
+```
+
+#### Key Metrics Investors Will Ask About
+
+| Metric | What It Means | Your Target (Year 1) |
+|--------|--------------|---------------------|
+| **MRR** | Monthly Recurring Revenue | ₹2-8 Lakhs |
+| **ARR** | Annual Recurring Revenue | ₹25-96 Lakhs |
+| **CAC** | Cost to Acquire 1 Customer | ₹50-200 |
+| **LTV** | Lifetime Value of 1 Customer | ₹1,500-6,000 |
+| **LTV/CAC** | Must be > 3x | 7.5x – 30x ✅ |
+| **Churn** | % users who cancel monthly | < 5% |
+| **DAU/MAU** | Daily/Monthly active users | 30%+ |
+| **NPS** | Net Promoter Score | 50+ |
+| **Burn Rate** | Money spent per month | ₹18,000-40,000 |
+| **Runway** | Months before money runs out | 12+ months |
+
+#### 🏆 Why VidyaMitra is Investable
+
+**TAM (Total Addressable Market):**
+- 40M+ college students in India
+- ₹2,000/year × 40M = ₹80,000 Crore market
+
+**SAM (Serviceable Available Market):**
+- 5M engineering/management students actively preparing for placements
+- ₹2,000/year × 5M = ₹1,000 Crore
+
+**SOM (Serviceable Obtainable Market — Year 1-3):**
+- 50,000 students + 200 institutions
+- Target: ₹3.5 Crore ARR by Year 3
+
+#### The "Elevator Pitch" (30 seconds)
+
+> *"VidyaMitra is an AI-powered placement platform that gives every college student a personal AI interviewer, resume analyzer, and career planner. We're already live with Razorpay payments, serving institutions with subscription tiers. We're targeting the ₹1,000 Crore EdTech interview-prep market. With ₹7.5L from college and early traction, we'll hit ₹25L revenue in Year 1 and ₹1.2 Crore by Year 2."*
+
+#### DPIIT Startup India Registration
+
+> [!TIP]
+> Register on **Startup India** (DPIIT) immediately. Benefits:
+> - Tax exemption for 3 years (Section 80-IAC)
+> - Self-certification for 9 labour & environment laws
+> - Fast-track patent examination
+> - Government tenders access
+> - Free at: https://www.startupindia.gov.in/
+
+---
+
+## 12. 12-Month Launch Roadmap
+
+### Phase 1: Foundation (Month 1-2) 🏗️
+
+**Business & Legal:**
+- [ ] Register Auranex as a company (LLP or Pvt Ltd)
+- [ ] DPIIT Startup India registration
+- [ ] GST registration
+- [ ] Domain purchase: vidyamitra.com / vidyamitra.in
+- [ ] Privacy Policy, Terms of Service, Refund Policy
+
+**Infrastructure:**
+- [ ] Separate Vite dev server into standalone Express.js backend
+- [ ] Set up Vercel (frontend) + Railway (backend) CI/CD
+- [ ] Upgrade Supabase to Pro plan
+- [ ] Deploy Judge0 on EC2 t3.small (Mumbai region) with Docker
+- [ ] Set up Elastic IP + domain for EC2 Judge0 instance
+- [ ] Replace NewsAPI with GNews (free alternative)
+
+**🔒 Security Hardening (CRITICAL):**
+- [ ] Move ALL `VITE_*` API keys to server-side proxy (Gemini, Groq, JSearch, GitHub)
+- [ ] Add session token expiry (24-48 hour TTL)
+- [ ] Restrict CORS to `vidyamitra.com` only (remove wildcard `*`)
+- [ ] Change default admin password, remove seed data from production
+- [ ] Install Helmet.js for security headers
+- [ ] Add express-rate-limit (100 req/min per IP)
+- [ ] Add Zod input validation on all API endpoints
+- [ ] Enable brute-force protection (5 failed logins = 15min lockout)
+- [ ] Set up Cloudflare DNS + free WAF
+- [ ] Enable GitHub Dependabot for vulnerability alerts
+- [ ] Configure Supabase Row-Level Security (RLS)
+- [ ] EC2 Security Group: restrict Judge0 port to Railway IP only
+- [ ] Add Nginx + HTTPS (Let's Encrypt) to EC2 Judge0 instance
+- [ ] Rotate ALL existing API keys (they've been in codebase)
+
+**Product:**
+- [ ] Implement individual student subscription (Free/Pro/Premium)
+
+### Phase 2: Beta Launch (Month 3-4) 🚀
+
+- [ ] Soft launch at MMU campus (your own college)
+- [ ] 500 beta users target
+- [ ] Collect feedback aggressively
+- [ ] Fix bugs and UX issues
+- [ ] Add analytics (Mixpanel/PostHog — both have free tiers)
+- [ ] Implement feature gating for Free vs Pro vs Premium
+- [ ] Launch social media (LinkedIn, Instagram, Twitter)
+- [ ] Create demo videos / YouTube channel
+
+### Phase 3: Growth (Month 5-8) 📈
+
+- [ ] Expand to 5 colleges in your region
+- [ ] Pitch to TPOs (Training & Placement Officers)
+- [ ] Reach 5,000 users, 200 paid subscribers
+- [ ] First 5 institutional customers
+- [ ] Add referral program (invite 3 friends → 1 month free Pro)
+- [ ] SEO + Content marketing (blog about interview tips)
+- [ ] Submit to Product Hunt / Hacker News
+- [ ] Apply to startup incubators (T-Hub, IIT incubators)
+
+### Phase 4: Scale (Month 9-12) 🔥
+
+- [ ] Target 20 institutions across India
+- [ ] Reach 30,000 users, 1,000 paid subscribers
+- [ ] Upgrade EC2 to t3.medium if code execution load increases
+- [ ] Set up CloudWatch alarms for EC2 monitoring
+- [ ] Add weekly AMI backup for EC2 instance
+- [ ] Hire 1 support person + 1 marketing intern
+- [ ] Build mobile app (React Native — reuse components)
+- [ ] Run OWASP ZAP security scan before major release
+- [ ] Prepare pre-seed pitch deck
+- [ ] Apply to YC, Surge (Sequoia), 100X.VC
+- [ ] Target ₹8L monthly revenue
+
+---
+
+## 📌 IMMEDIATE ACTION ITEMS (This Week)
+
+> [!CAUTION]
+> **SECURITY ALERT**: Your `.env` file has ALL API keys in plain text and is in the repo. Before launching:
+> 1. Rotate ALL API keys immediately
+> 2. Add `.env` to `.gitignore` (it's there but verify the actual keys haven't been pushed)
+> 3. Use environment variables in your hosting provider (Vercel/Railway have built-in secret managers)
+> 4. The Razorpay LIVE key is exposed — rotate it NOW
+
+### Top 5 Things to Do Right Now
+
+1. **🔐 Rotate all API keys** — your keys are in `.env` in the codebase
+2. **📝 Write a 2-page proposal** for college with the ₹7.5L budget table above
+3. **🏢 Register on Startup India** (DPIIT) — takes 30 minutes online
+4. **💻 Implement Free/Pro/Premium individual plans** — this is your primary revenue driver
+5. **🌐 Buy domain** — vidyamitra.com / vidyamitra.in + set up landing page
+
+---
+
+## 📊 Summary Card for College Proposal
+
+```
+┌───────────────────────────────────────────────┐
+│        VIDYAMITRA by AURANEX (MMU)            │
+├───────────────────────────────────────────────┤
+│ Product:    AI Interview Prep Platform         │
+│ Market:     ₹1,000 Cr (Indian EdTech)         │
+│ Fund Ask:   ₹7,50,000 (from ₹10L budget)     │
+│ Runway:     12 months                         │
+│ Break-even: Month 6-8                         │
+│ Year 1 Rev: ₹15-25 Lakhs                     │
+│ Year 1 ROI: 93-227%                          │
+│ Year 3 Rev: ₹1.2-3.5 Crore                   │
+│ Users Y1:   30,000 free + 1,000 paid          │
+│ B2B Y1:     20 institutions                   │
+│ Team:       2-3 members                       │
+│ Tech:       React + Supabase + 18 AI APIs     │
+│ Status:     Product built, Razorpay live       │
+└───────────────────────────────────────────────┘
+```
+
+---
+
+> [!NOTE]
+> This plan assumes you are bootstrapping with college funds and no external investors initially. Once you hit ₹5L+ MRR (Monthly Recurring Revenue), you'll be in a strong position to raise a pre-seed round of ₹25-50L from angel investors, which would accelerate growth significantly.
+
+**The single most important thing: GET YOUR FIRST 10 PAYING CUSTOMERS.** Everything else — investors, scale, team — follows from proving that people will pay for VidyaMitra.
+</textarea>
+<script>
+  let md = document.getElementById('markdown-content').value;
+  
+  // Custom replacements for GitHub alerts
+  md = md.replace(/> \[\!CAUTION\]\n((?:> .*\n?)+)/g, (match, p1) => `<div class="alert alert-danger"><strong>CAUTION:</strong> ${p1.replace(/> /g, '')}</div>\n`);
+  md = md.replace(/> \[\!WARNING\]\n((?:> .*\n?)+)/g, (match, p1) => `<div class="alert alert-warning"><strong>WARNING:</strong> ${p1.replace(/> /g, '')}</div>\n`);
+  md = md.replace(/> \[\!IMPORTANT\]\n((?:> .*\n?)+)/g, (match, p1) => `<div class="alert alert-info"><strong>IMPORTANT:</strong> ${p1.replace(/> /g, '')}</div>\n`);
+  md = md.replace(/> \[\!NOTE\]\n((?:> .*\n?)+)/g, (match, p1) => `<div class="alert alert-success"><strong>NOTE:</strong> ${p1.replace(/> /g, '')}</div>\n`);
+  md = md.replace(/> \[\!TIP\]\n((?:> .*\n?)+)/g, (match, p1) => `<div class="alert alert-success"><strong>TIP:</strong> ${p1.replace(/> /g, '')}</div>\n`);
+
+  document.getElementById('content').innerHTML = marked.parse(md);
+</script>
+</body>
+</html>
