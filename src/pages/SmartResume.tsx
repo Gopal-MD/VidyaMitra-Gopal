@@ -19,7 +19,8 @@ import {
 import { processResume, processResumeFromText } from '@/utils/atsParser';
 import { ResumeData } from '@/types';
 import { toast } from 'sonner';
-import { geminiApi, resumeBuilderApi } from '@/lib/api';
+import { geminiApi, resumeBuilderApi, resumesApi, resumeS3Api } from '@/lib/api';
+import { uploadResumeToS3 } from '@/lib/resumeService';
 import { generateResumeSkillGaps } from '@/utils/learningRecommendations';
 import LearningRecommendations from '@/components/LearningRecommendations';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -208,9 +209,7 @@ const ResumeUploadSection = () => {
         setProcessing(true); setError('');
         toast.success('AI is analyzing your resume...', { duration: 2000 });
         try {
-            // AWS S3 + Textract disabled — process file directly via PDF.js
-            // TO RE-ENABLE: restore the S3 upload + extractTextViaTextract block here
-            // and import { extractTextViaTextract } from '@/utils/atsParser'
+            // Process resume via PDF.js (ATS analysis — runs in browser, no server needed)
             const processedResume = await processResume(file, effectiveRole);
 
             setResume(processedResume);
@@ -222,7 +221,52 @@ const ResumeUploadSection = () => {
                     setSkillGapAnalysis(gaps);
                 } catch { }
             }
-            // Auto-save to profile
+
+            // ── S3 upload + DB metadata persistence ──────────────────────────
+            // Step 1: create the resumes DB row first so we have a resumeId.
+            // Step 2: upload file to S3 in the background (non-blocking).
+            // Step 3: once both are done, attach the s3Key to the DB row.
+            // If either step fails the ATS analysis result is unaffected.
+            let resumeId: string | null = null;
+            try {
+                const saved = await resumesApi.save({
+                    fileName  : file.name,
+                    rawText   : processedResume.parsedData?.skills?.join(', ') || '',
+                    parsedData: processedResume.parsedData || {},
+                    atsScore  : processedResume.atsScore,
+                    atsAnalysis: processedResume.atsAnalysis || {},
+                    targetRole: effectiveRole,
+                });
+                resumeId = saved?.id || null;
+            } catch (dbErr: any) {
+                console.error('[SmartResume] Failed to save resume metadata to DB:', dbErr?.message);
+                // Non-fatal — ATS analysis is already displayed; S3 upload still proceeds
+            }
+
+            // S3 upload runs in background so it never delays the ATS UI
+            uploadResumeToS3(file)
+                .then(async (s3Result) => {
+                    if (!s3Result) return; // AWS not configured or upload failed — already logged
+                    console.log('☁️  SmartResume: S3 upload succeeded:', s3Result.s3Key);
+                    if (!resumeId) {
+                        console.warn('[SmartResume] S3 upload succeeded but no resumeId — skipping metadata save');
+                        return;
+                    }
+                    try {
+                        // saveMetadata signature: (resumeId, s3Key, fileSize?)
+                        await resumeS3Api.saveMetadata(resumeId, s3Result.s3Key, s3Result.fileSize);
+                        console.log('[SmartResume] S3 key persisted to DB for resumeId:', resumeId);
+                    } catch (metaErr: any) {
+                        console.error('[SmartResume] Failed to persist s3Key to DB:', metaErr?.message);
+                        // Non-fatal — S3 object exists; key can be recovered from bucket listing
+                    }
+                })
+                .catch((s3Err: any) => {
+                    console.error('[SmartResume] S3 upload failed:', s3Err?.message);
+                    // Non-fatal — ATS analysis is unaffected
+                });
+
+            // Auto-save to profile (unchanged)
             try {
                 const allSkills = [...(processedResume.atsAnalysis?.matchedSkills || []), ...(processedResume.parsedData?.skills || [])].filter(Boolean);
                 await saveResumeToProfile({

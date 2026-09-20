@@ -1,311 +1,315 @@
 /**
- * VidyaMitra S3 Routes
- * Handles file uploads/downloads/listing/deletion via AWS S3.
- * Bucket: vidyamitra-uploads-629496
+ * VidyaMitra — S3 Resume Routes
+ *
+ * Bucket  : vidyamitra-resumes-441442683103  (ap-south-1, private)
+ * Prefix  : resumes/{userId}/{timestamp}-{rand}-{filename}
+ *
+ * Endpoints registered by registerS3ResumeRoutes():
+ *
+ *   POST   /api/aws/resume/upload          — generate presigned PUT URL
+ *   GET    /api/aws/resume/download        — generate presigned GET URL  (?key=…)
+ *   DELETE /api/aws/resume/delete          — delete object               (?key=…)
+ *   PUT    /api/aws/resume/metadata        — attach s3_key to existing DB resume row
+ *   GET    /api/aws/resume/status          — health-check: is bucket reachable?
+ *
+ * Security:
+ *   - Every endpoint requires a valid Bearer session token.
+ *   - userId is always taken from the server-side session, never from the request body.
+ *   - validateResumeKey() enforces ownership — users cannot access each other's files.
+ *   - Admins (session.isAdmin) may download/delete any key under resumes/.
+ *   - Bucket stays private: no public-read ACL, Block Public Access remains ON.
+ *   - Presigned URLs have short TTLs (10 min upload, 15 min download).
+ *   - Filenames are sanitised; path traversal sequences are rejected.
  */
 
 import type { ViteDevServer } from 'vite';
 import type { IncomingMessage, ServerResponse } from 'http';
-import { loadEnv } from 'vite';
-import { S3Client, ListObjectsV2Command, DeleteObjectCommand, GetObjectCommand, PutObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import { trackS3Upload, trackS3Download, trackS3Delete, trackS3List } from './awsUsageCounter';
+import {
+  RESUME_BUCKET,
+  RESUME_REGION,
+  ALLOWED_CONTENT_TYPES,
+  ALLOWED_EXTENSIONS,
+  MAX_RESUME_BYTES,
+  createResumeUploadUrl,
+  createResumeDownloadUrl,
+  deleteResumeObject,
+  validateResumeKey,
+  sanitiseFileName,
+  getS3Client,
+} from './services/aws/s3.js';
+import { HeadBucketCommand } from '@aws-sdk/client-s3';
+import path from 'path';
 
-const REGION = 'us-east-1';
+// ── Types (must match what apiServer.ts exposes) ──────────────────────────────
 
-// Allowed folder prefixes for uploads
-const ALLOWED_PREFIXES = ['resumes/', 'profile-pictures/', 'institution-logos/', 'exports/'];
+type Session = { userId: string; email: string; isAdmin: boolean; name: string };
+type GetSessionAsync = (req: IncomingMessage) => Promise<Session | null>;
+type SendJson = (res: ServerResponse, status: number, data: unknown) => void;
+type ParseBody = (req: IncomingMessage) => Promise<any>;
 
-// Max file size: 10MB
-const MAX_FILE_SIZE = 10 * 1024 * 1024;
+// ── Route registration ────────────────────────────────────────────────────────
 
-// Allowed MIME types
-const ALLOWED_MIME_TYPES = [
-  'application/pdf',
-  'application/msword',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  'image/jpeg',
-  'image/png',
-  'image/webp',
-  'text/plain',
-  'text/csv',
-];
-
-let s3Client: S3Client | null = null;
-let bucketName = 'vidyamitra-uploads-629496';
-
-export function initS3(env: Record<string, string>) {
-  bucketName = env.S3_BUCKET_NAME || bucketName;
-
-  const credentials = {
-    accessKeyId: env.AWS_ACCESS_KEY_ID || process.env.AWS_ACCESS_KEY_ID || '',
-    secretAccessKey: env.AWS_SECRET_ACCESS_KEY || process.env.AWS_SECRET_ACCESS_KEY || '',
-    sessionToken: env.AWS_SESSION_TOKEN || process.env.AWS_SESSION_TOKEN || undefined,
-  };
-
-  if (!credentials.accessKeyId || !credentials.secretAccessKey) {
-    console.warn('  ⚠️  AWS credentials not found — S3 routes will not work');
-    return;
-  }
-
-  s3Client = new S3Client({
-    region: env.AWS_REGION || REGION,
-    credentials,
-  });
-}
-
-export function registerS3Routes(
-  server: ViteDevServer,
-  _keys: any,
-  getSession: (req: IncomingMessage) => { userId: string; email: string; isAdmin: boolean; name: string } | null,
-  getSessionAsync: (req: IncomingMessage) => Promise<{ userId: string; email: string; isAdmin: boolean; name: string } | null>,
-  sendJson: (res: ServerResponse, status: number, data: any) => void,
-  parseBody: (req: IncomingMessage) => Promise<any>,
+export function registerS3ResumeRoutes(
+  server      : ViteDevServer | { middlewares: any },
+  getSessionAsync: GetSessionAsync,
+  sendJson    : SendJson,
+  parseBody   : ParseBody,
 ) {
-  if (!s3Client) {
-    console.warn('  ⚠️  S3 client not initialized — skipping S3 route registration');
-    return;
-  }
-  const s3 = s3Client;
+  // ── POST /api/aws/resume/upload ─────────────────────────────────────────────
+  // Request body: { fileName: string, contentType: string, fileSize?: number }
+  // Response:     { success, uploadUrl, key, fileName, contentType, expiresIn }
+  server.middlewares.use('/api/aws/resume/upload', async (req: any, res: any, next: any) => {
+    if (req.method !== 'POST') return next();
 
-  // ==================== LIST FILES (Admin only) ====================
-  server.middlewares.use('/api/s3/files', async (req: any, res: any, next: any) => {
-    if (req.method !== 'GET') return next();
     try {
-      const session = await getSessionAsync(req);
-      if (!session?.isAdmin) return sendJson(res, 403, { error: 'Admin access required' });
-
-      const url = new URL(req.url || '', 'http://localhost');
-      const prefix = url.searchParams.get('prefix') || '';
-      const maxKeys = Math.min(parseInt(url.searchParams.get('limit') || '100'), 1000);
-      const continuationToken = url.searchParams.get('token') || undefined;
-
-      const command = new ListObjectsV2Command({
-        Bucket: bucketName,
-        Prefix: prefix,
-        MaxKeys: maxKeys,
-        ContinuationToken: continuationToken,
-        Delimiter: prefix ? undefined : '/',
-      });
-
-      const result = await s3.send(command);
-
-      const files = (result.Contents || [])
-        .filter(obj => obj.Key && !obj.Key.endsWith('/')) // Skip folder markers
-        .map(obj => ({
-          key: obj.Key,
-          size: obj.Size,
-          lastModified: obj.LastModified?.toISOString(),
-          etag: obj.ETag,
-        }));
-
-      const folders = (result.CommonPrefixes || []).map(p => p.Prefix);
-
-      trackS3List(); // Track list operation
-
-      sendJson(res, 200, {
-        files,
-        folders,
-        totalFiles: files.length,
-        nextToken: result.NextContinuationToken || null,
-        isTruncated: result.IsTruncated || false,
-      });
-    } catch (err: any) {
-      console.error('S3 list error:', err);
-      sendJson(res, 500, { error: 'Failed to list files: ' + err.message });
-    }
-  });
-
-  // ==================== GET PRESIGNED DOWNLOAD URL ====================
-  server.middlewares.use('/api/s3/download', async (req: any, res: any, next: any) => {
-    if (req.method !== 'GET') return next();
-    try {
+      // 1. Authenticate
       const session = await getSessionAsync(req);
       if (!session) return sendJson(res, 401, { error: 'Authentication required' });
 
-      const url = new URL(req.url || '', 'http://localhost');
-      const key = url.searchParams.get('key');
-      if (!key) return sendJson(res, 400, { error: 'File key required' });
+      // 2. Parse body
+      const body = await parseBody(req);
+      const { fileName, contentType, fileSize } = body || {};
 
-      // Non-admins can only download their own files (key contains userId)
-      if (!session.isAdmin && !key.includes(session.userId)) {
-        return sendJson(res, 403, { error: 'Access denied' });
+      // 3. Validate fileName
+      if (!fileName || typeof fileName !== 'string' || !fileName.trim()) {
+        return sendJson(res, 400, { error: 'fileName is required' });
       }
 
-      const command = new GetObjectCommand({ Bucket: bucketName, Key: key });
-      const presignedUrl = await getSignedUrl(s3, command, { expiresIn: 300 }); // 5 min
-
-      trackS3Download(); // Track download operation
-
-      sendJson(res, 200, { url: presignedUrl, expiresIn: 300 });
-    } catch (err: any) {
-      console.error('S3 download error:', err);
-      sendJson(res, 500, { error: 'Failed to generate download URL: ' + err.message });
-    }
-  });
-
-  // ==================== GET PRESIGNED UPLOAD URL ====================
-  server.middlewares.use('/api/s3/upload-url', async (req: any, res: any, next: any) => {
-    if (req.method !== 'POST') return next();
-    try {
-      const session = await getSessionAsync(req);
-      if (!session) return sendJson(res, 401, { error: 'Authentication required' });
-
-      const { fileName, contentType, folder } = await parseBody(req);
-      if (!fileName || !contentType || !folder) {
-        return sendJson(res, 400, { error: 'fileName, contentType, and folder are required' });
+      // 4. Validate contentType
+      if (!contentType || typeof contentType !== 'string') {
+        return sendJson(res, 400, { error: 'contentType is required' });
       }
-
-      // Validate folder
-      const folderPrefix = folder.endsWith('/') ? folder : folder + '/';
-      if (!ALLOWED_PREFIXES.includes(folderPrefix)) {
-        return sendJson(res, 400, { error: `Invalid folder. Allowed: ${ALLOWED_PREFIXES.join(', ')}` });
-      }
-
-      // Validate MIME type
-      if (!ALLOWED_MIME_TYPES.includes(contentType)) {
-        return sendJson(res, 400, { error: `File type not allowed: ${contentType}` });
-      }
-
-      // Sanitize filename - only allow alphanumeric, dash, underscore, dot
-      const sanitized = fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
-      const timestamp = Date.now();
-      const key = `${folderPrefix}${session.userId}/${timestamp}_${sanitized}`;
-
-      const command = new PutObjectCommand({
-        Bucket: bucketName,
-        Key: key,
-        ContentType: contentType,
-        Metadata: {
-          'uploaded-by': session.userId,
-          'original-name': sanitized,
-        },
-      });
-
-      const presignedUrl = await getSignedUrl(s3, command, { expiresIn: 600 }); // 10 min
-
-      trackS3Upload(); // Track upload operation
-
-      sendJson(res, 200, {
-        uploadUrl: presignedUrl,
-        key,
-        expiresIn: 600,
-      });
-    } catch (err: any) {
-      console.error('S3 upload URL error:', err);
-      sendJson(res, 500, { error: 'Failed to generate upload URL: ' + err.message });
-    }
-  });
-
-  // ==================== DELETE FILE (Admin only) ====================
-  server.middlewares.use('/api/s3/delete', async (req: any, res: any, next: any) => {
-    if (req.method !== 'DELETE') return next();
-    try {
-      const session = await getSessionAsync(req);
-      if (!session?.isAdmin) return sendJson(res, 403, { error: 'Admin access required' });
-
-      const url = new URL(req.url || '', 'http://localhost');
-      const key = url.searchParams.get('key');
-      if (!key) return sendJson(res, 400, { error: 'File key required' });
-
-      // Prevent deleting folder markers
-      if (key.endsWith('/')) {
-        return sendJson(res, 400, { error: 'Cannot delete folder markers' });
-      }
-
-      await s3.send(new DeleteObjectCommand({ Bucket: bucketName, Key: key }));
-
-      trackS3Delete(); // Track delete operation
-
-      sendJson(res, 200, { success: true, message: `Deleted: ${key}` });
-    } catch (err: any) {
-      console.error('S3 delete error:', err);
-      sendJson(res, 500, { error: 'Failed to delete file: ' + err.message });
-    }
-  });
-
-  // ==================== BULK DELETE (Admin only) ====================
-  server.middlewares.use('/api/s3/bulk-delete', async (req: any, res: any, next: any) => {
-    if (req.method !== 'POST') return next();
-    try {
-      const session = await getSessionAsync(req);
-      if (!session?.isAdmin) return sendJson(res, 403, { error: 'Admin access required' });
-
-      const { keys } = await parseBody(req);
-      if (!Array.isArray(keys) || keys.length === 0) {
-        return sendJson(res, 400, { error: 'keys array required' });
-      }
-      if (keys.length > 100) {
-        return sendJson(res, 400, { error: 'Maximum 100 files per bulk delete' });
-      }
-
-      const results: { key: string; success: boolean; error?: string }[] = [];
-      for (const key of keys) {
-        if (typeof key !== 'string' || key.endsWith('/')) {
-          results.push({ key, success: false, error: 'Invalid key' });
-          continue;
-        }
-        try {
-          await s3.send(new DeleteObjectCommand({ Bucket: bucketName, Key: key }));
-          trackS3Delete(); // Track each successful delete
-          results.push({ key, success: true });
-        } catch (err: any) {
-          results.push({ key, success: false, error: err.message });
-        }
-      }
-
-      sendJson(res, 200, {
-        deleted: results.filter(r => r.success).length,
-        failed: results.filter(r => !r.success).length,
-        results,
-      });
-    } catch (err: any) {
-      console.error('S3 bulk delete error:', err);
-      sendJson(res, 500, { error: 'Bulk delete failed: ' + err.message });
-    }
-  });
-
-  // ==================== STORAGE STATS (Admin only) ====================
-  server.middlewares.use('/api/s3/stats', async (req: any, res: any, next: any) => {
-    if (req.method !== 'GET') return next();
-    try {
-      const session = await getSessionAsync(req);
-      if (!session?.isAdmin) return sendJson(res, 403, { error: 'Admin access required' });
-
-      const stats: Record<string, { count: number; totalSize: number }> = {};
-      let totalFiles = 0;
-      let totalSize = 0;
-
-      for (const prefix of ALLOWED_PREFIXES) {
-        const command = new ListObjectsV2Command({
-          Bucket: bucketName,
-          Prefix: prefix,
+      if (!ALLOWED_CONTENT_TYPES.has(contentType)) {
+        return sendJson(res, 400, {
+          error: `Unsupported file type: ${contentType}. Allowed: PDF, DOC, DOCX`,
         });
-        const result = await s3.send(command);
-        const files = (result.Contents || []).filter(obj => !obj.Key?.endsWith('/'));
-        const folderSize = files.reduce((sum, f) => sum + (f.Size || 0), 0);
-
-        stats[prefix.replace('/', '')] = {
-          count: files.length,
-          totalSize: folderSize,
-        };
-        totalFiles += files.length;
-        totalSize += folderSize;
       }
 
-      sendJson(res, 200, {
-        bucketName: bucketName,
-        region: REGION,
-        folders: stats,
-        totalFiles,
-        totalSize,
-        totalSizeMB: (totalSize / (1024 * 1024)).toFixed(2),
+      // 5. Validate file extension (must match contentType)
+      const ext = path.extname(fileName).toLowerCase();
+      if (!ALLOWED_EXTENSIONS.has(ext)) {
+        return sendJson(res, 400, {
+          error: `Unsupported extension "${ext}". Allowed: .pdf, .doc, .docx`,
+        });
+      }
+
+      // 6. Validate file size (if client sent it — not enforced by S3 itself)
+      if (fileSize !== undefined) {
+        const size = Number(fileSize);
+        if (!Number.isFinite(size) || size <= 0) {
+          return sendJson(res, 400, { error: 'fileSize must be a positive number' });
+        }
+        if (size > MAX_RESUME_BYTES) {
+          const maxMB = (MAX_RESUME_BYTES / 1024 / 1024).toFixed(0);
+          return sendJson(res, 400, { error: `File too large. Maximum allowed: ${maxMB} MB` });
+        }
+      }
+
+      // 7. Prevent path traversal in fileName
+      const safe = sanitiseFileName(fileName);
+      if (safe !== path.basename(safe) || safe.includes('..')) {
+        return sendJson(res, 400, { error: 'Invalid filename' });
+      }
+
+      // 8. Generate presigned PUT URL — userId comes from server session only
+      const result = await createResumeUploadUrl(session.userId, safe, contentType);
+
+      // 9. Return — never expose bucket name or region to client in prod, but
+      //    key and uploadUrl are required for the frontend PUT.
+      return sendJson(res, 200, {
+        success    : true,
+        uploadUrl  : result.uploadUrl,
+        key        : result.key,
+        fileName   : result.fileName,
+        contentType: result.contentType,
+        expiresIn  : result.expiresIn,
       });
+
     } catch (err: any) {
-      console.error('S3 stats error:', err);
-      sendJson(res, 500, { error: 'Failed to get stats: ' + err.message });
+      console.error('[S3] POST /api/aws/resume/upload error:', err?.message);
+      // Do not leak AWS internals — return a generic message
+      const isCredentialError = /credential|ExpiredToken|InvalidClientTokenId|NoCredential/i.test(
+        err?.message || err?.name || '',
+      );
+      if (isCredentialError) {
+        return sendJson(res, 503, {
+          error: 'AWS credentials not available. Configure AWS CLI or set environment variables.',
+        });
+      }
+      return sendJson(res, 500, { error: 'Failed to generate upload URL. Please try again.' });
     }
   });
 
-  console.log('  ☁️  S3 routes registered (bucket: ' + bucketName + ')');
+  // ── GET /api/aws/resume/download?key=resumes/…  ─────────────────────────────
+  // Response: { success, downloadUrl, key, expiresIn }
+  server.middlewares.use('/api/aws/resume/download', async (req: any, res: any, next: any) => {
+    if (req.method !== 'GET') return next();
+
+    try {
+      const session = await getSessionAsync(req);
+      if (!session) return sendJson(res, 401, { error: 'Authentication required' });
+
+      const url = new URL(req.url || '', 'http://localhost');
+      const key = url.searchParams.get('key') || '';
+
+      if (!key) return sendJson(res, 400, { error: 'key query parameter is required' });
+
+      // Ownership check — admins may download any resume key
+      if (!session.isAdmin && !validateResumeKey(key, session.userId)) {
+        return sendJson(res, 403, { error: 'Access denied: this file does not belong to you' });
+      }
+
+      // Extra safety: key must be under resumes/
+      if (!key.startsWith('resumes/')) {
+        return sendJson(res, 400, { error: 'Invalid key: must be under resumes/ prefix' });
+      }
+
+      const result = await createResumeDownloadUrl(key);
+
+      return sendJson(res, 200, {
+        success    : true,
+        downloadUrl: result.downloadUrl,
+        key        : result.key,
+        expiresIn  : result.expiresIn,
+      });
+
+    } catch (err: any) {
+      console.error('[S3] GET /api/aws/resume/download error:', err?.message);
+      const isCredentialError = /credential|ExpiredToken|InvalidClientTokenId|NoCredential/i.test(
+        err?.message || err?.name || '',
+      );
+      if (isCredentialError) {
+        return sendJson(res, 503, { error: 'AWS credentials not available.' });
+      }
+      return sendJson(res, 500, { error: 'Failed to generate download URL. Please try again.' });
+    }
+  });
+
+  // ── DELETE /api/aws/resume/delete?key=resumes/…  ────────────────────────────
+  // Response: { success, message }
+  server.middlewares.use('/api/aws/resume/delete', async (req: any, res: any, next: any) => {
+    if (req.method !== 'DELETE') return next();
+
+    try {
+      const session = await getSessionAsync(req);
+      if (!session) return sendJson(res, 401, { error: 'Authentication required' });
+
+      const url = new URL(req.url || '', 'http://localhost');
+      const key = url.searchParams.get('key') || '';
+
+      if (!key) return sendJson(res, 400, { error: 'key query parameter is required' });
+
+      // deleteResumeObject enforces ownership internally
+      await deleteResumeObject(key, session.userId, session.isAdmin);
+
+      return sendJson(res, 200, { success: true, message: `Deleted: ${key}` });
+
+    } catch (err: any) {
+      if (err?.message?.startsWith('Access denied')) {
+        return sendJson(res, 403, { error: err.message });
+      }
+      if (err?.message?.startsWith('Invalid key')) {
+        return sendJson(res, 400, { error: err.message });
+      }
+      console.error('[S3] DELETE /api/aws/resume/delete error:', err?.message);
+      return sendJson(res, 500, { error: 'Failed to delete resume. Please try again.' });
+    }
+  });
+
+  // ── PUT /api/aws/resume/metadata ─────────────────────────────────────────────
+  // Attach the confirmed S3 key to an existing resume DB row.
+  // Called by the frontend after a successful presigned PUT to S3.
+  // Body: { resumeId: string, s3Key: string, fileSize?: number }
+  // Response: { success }
+  //
+  // Note: This route imports DB lazily to avoid circular dependencies.
+  server.middlewares.use('/api/aws/resume/metadata', async (req: any, res: any, next: any) => {
+    if (req.method !== 'PUT') return next();
+
+    try {
+      const session = await getSessionAsync(req);
+      if (!session) return sendJson(res, 401, { error: 'Authentication required' });
+
+      const body = await parseBody(req);
+      const { resumeId, s3Key, fileSize } = body || {};
+
+      if (!resumeId || typeof resumeId !== 'string') {
+        return sendJson(res, 400, { error: 'resumeId is required' });
+      }
+      if (!s3Key || typeof s3Key !== 'string') {
+        return sendJson(res, 400, { error: 's3Key is required' });
+      }
+
+      // Verify the key belongs to this user (not an admin-only check — every user
+      // can only attach their own keys)
+      if (!validateResumeKey(s3Key, session.userId)) {
+        return sendJson(res, 403, { error: 'Access denied: s3Key does not belong to your account' });
+      }
+
+      // Lazy import DB to avoid circular module issues at startup
+      const { DB } = await import('./database.js');
+
+      // Verify the resume row belongs to this user
+      const row = await DB.get(
+        'SELECT id, user_id FROM resumes WHERE id = ?',
+        [resumeId],
+      ) as { id: string; user_id: string } | null;
+
+      if (!row) return sendJson(res, 404, { error: 'Resume record not found' });
+      if (row.user_id !== session.userId) {
+        return sendJson(res, 403, { error: 'Access denied: resume belongs to a different user' });
+      }
+
+      // Update the resume row with S3 metadata
+      await DB.run(
+        'UPDATE resumes SET s3_key = ?, file_size = ? WHERE id = ? AND user_id = ?',
+        [s3Key, fileSize ?? null, resumeId, session.userId],
+      );
+
+      return sendJson(res, 200, { success: true });
+
+    } catch (err: any) {
+      console.error('[S3] PUT /api/aws/resume/metadata error:', err?.message);
+      return sendJson(res, 500, { error: 'Failed to save resume metadata. Please try again.' });
+    }
+  });
+
+  // ── GET /api/aws/resume/status ───────────────────────────────────────────────
+  // Quick connectivity check — authenticated users only.
+  // Response: { configured, bucket, region, reachable, error? }
+  server.middlewares.use('/api/aws/resume/status', async (req: any, res: any, next: any) => {
+    if (req.method !== 'GET') return next();
+
+    const session = await getSessionAsync(req);
+    if (!session) return sendJson(res, 401, { error: 'Authentication required' });
+
+    try {
+      const s3 = getS3Client();
+      await s3.send(new HeadBucketCommand({ Bucket: RESUME_BUCKET }));
+      return sendJson(res, 200, {
+        configured: true,
+        bucket    : RESUME_BUCKET,
+        region    : RESUME_REGION,
+        reachable : true,
+      });
+    } catch (err: any) {
+      const isCredentialError = /credential|ExpiredToken|InvalidClientTokenId|NoCredential/i.test(
+        err?.message || err?.name || '',
+      );
+      return sendJson(res, 200, {
+        configured: true,
+        bucket    : RESUME_BUCKET,
+        region    : RESUME_REGION,
+        reachable : false,
+        error     : isCredentialError
+          ? 'AWS credentials not configured'
+          : (err?.message || 'Bucket unreachable'),
+      });
+    }
+  });
+
+  console.log(
+    `  ☁️  S3 resume routes registered` +
+    ` (bucket: ${RESUME_BUCKET}, region: ${RESUME_REGION})`,
+  );
 }

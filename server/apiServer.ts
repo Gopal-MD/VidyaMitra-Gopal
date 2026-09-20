@@ -10,6 +10,7 @@ import { loadEnv } from 'vite';
 import { getDb, hashPassword, verifyPassword, generateId } from './db';
 import { DB } from './database';
 import { registerSubscriptionRoutes } from './subscriptionRoutes';
+import { registerS3ResumeRoutes } from './s3Routes';
 import * as vm from 'node:vm';
 
 
@@ -2184,10 +2185,11 @@ Return ONLY valid JSON format:
                             });
                         if (rawText.length > 200000) rawText = rawText.substring(0, 200000);
 
-                        await DB.run(`INSERT INTO resumes (id, user_id, file_name, raw_text, parsed_data, ats_score, ats_analysis, target_role)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, [id, session.userId, body.fileName || '', rawText,
+                        await DB.run(`INSERT INTO resumes (id, user_id, file_name, raw_text, parsed_data, ats_score, ats_analysis, target_role, s3_key, content_type, file_size)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [id, session.userId, body.fileName || '', rawText,
                                 JSON.stringify(body.parsedData || {}), body.atsScore || 0,
-                                JSON.stringify(body.atsAnalysis || {}), body.targetRole || '']);
+                                JSON.stringify(body.atsAnalysis || {}), body.targetRole || '',
+                                body.s3Key || null, body.contentType || null, body.fileSize || null]);
                         sendJson(res, 201, { success: true, id });
                     } catch (err: any) {
                         sendJson(res, 500, { error: err.message });
@@ -4740,6 +4742,9 @@ MENTOR GUIDELINES:
                     sendJson(res, 500, { error: 'Mentor chat failed' });
                 }
             });
+
+            // ==================== S3 RESUME ROUTES ====================
+            registerS3ResumeRoutes(server, getSessionAsync, sendJson, parseBody);
 
             // NOTE: OpenAI proxy routes are registered separately via vite.config.ts
         }

@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import { analyzeResumeForAllRoles, analyzeResumeForAllRolesFromText, RoleMatchResult, getConfidenceBadgeVariant } from "@/utils/intelligentRoleDetection";
 import LearningRecommendations from "@/components/LearningRecommendations";
 import { generateResumeSkillGaps } from "@/utils/learningRecommendations";
-import { saveResumeToFirestore } from "@/lib/resumeService";
+import { saveResumeToFirestore, uploadResumeToS3 } from "@/lib/resumeService";
 import { parseResumeFile } from "@/utils/resumeParser";
 import { useAuth } from "@/contexts/AuthContext";
 import { loadResumeFromProfile, saveResumeToProfile, logActivity, type SavedResume } from "@/utils/profileService";
@@ -155,10 +155,10 @@ export const ResumeUpload = ({ roleId, onResumeProcessed, minimumScore = 60, sho
           fileName: processedResume.fileName
         });
 
-        // Save resume to Firestore
+        // Upload PDF to S3 (private bucket, presigned PUT) and save metadata to DB
         if (user) {
           try {
-            console.log("💾 Saving resume to Firestore...");
+            console.log("💾 Saving resume metadata to DB...");
             const parsedResume = await parseResumeFile(file);
             // Ensure extractedData has required fields
             if (!parsedResume.extractedData) {
@@ -171,7 +171,7 @@ export const ResumeUpload = ({ roleId, onResumeProcessed, minimumScore = 60, sho
                 education: []
               };
             }
-            // Remove undefined fields to prevent Firestore errors
+            // Remove undefined fields
             const cleanedResume = {
               ...parsedResume,
               extractedData: {
@@ -183,14 +183,19 @@ export const ResumeUpload = ({ roleId, onResumeProcessed, minimumScore = 60, sho
                 education: parsedResume.extractedData?.education || []
               }
             };
-            const { success, resumeId } = await saveResumeToFirestore(user.id, cleanedResume);
+            // S3 upload (non-blocking — returns null if AWS not configured)
+            const s3Result = await uploadResumeToS3(file);
+            if (s3Result) {
+              console.log('☁️  Resume uploaded to S3:', s3Result.s3Key);
+            }
+            const { success, resumeId } = await saveResumeToFirestore(user.id, cleanedResume, s3Result);
             if (success) {
-              console.log('✅ Resume saved to Firestore:', resumeId);
-              toast.success('Resume saved successfully!');
+              console.log('✅ Resume saved to DB:', resumeId);
+              toast.success(s3Result ? 'Resume uploaded to S3 and saved!' : 'Resume saved successfully!');
             }
           } catch (saveError) {
-            console.error('❌ Failed to save resume to Firestore:', saveError);
-            // Don't block the flow if saving fails
+            console.error('❌ Failed to save resume:', saveError);
+            // Don't block the ATS analysis flow if saving fails
           }
 
           // Also save to profile system

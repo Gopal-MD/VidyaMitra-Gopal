@@ -278,6 +278,67 @@ export const rolesApi = {
         apiFetch('/api/roles', { method: 'POST', body: JSON.stringify({ roleId, isOpen }) }),
 };
 
+// ==================== S3 RESUME STORAGE ====================
+export const resumeS3Api = {
+    /**
+     * Step 1 — Request a presigned PUT URL from the backend.
+     * The backend derives userId from the session token; it is never sent from the client.
+     */
+    requestUploadUrl: (fileName: string, contentType: string, fileSize: number) =>
+        apiFetch('/api/aws/resume/upload', {
+            method: 'POST',
+            body: JSON.stringify({ fileName, contentType, fileSize }),
+        }),
+
+    /**
+     * Step 2 — PUT the file directly to S3 using the presigned URL.
+     * No auth header — the presigned URL itself is the credential.
+     * AWS credentials are never exposed to the browser.
+     */
+    uploadToS3: async (presignedUrl: string, file: File): Promise<void> => {
+        const res = await fetch(presignedUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': file.type },
+            body: file,
+        });
+        if (!res.ok) {
+            throw new Error(
+                `S3 upload failed (HTTP ${res.status}). ` +
+                `Check AWS credentials and bucket CORS configuration.`,
+            );
+        }
+    },
+
+    /**
+     * Step 3 (optional) — Attach the confirmed S3 key to an existing DB resume row.
+     * Call after a successful S3 PUT when you already have a resumeId.
+     */
+    saveMetadata: (resumeId: string, s3Key: string, fileSize?: number) =>
+        apiFetch('/api/aws/resume/metadata', {
+            method: 'PUT',
+            body: JSON.stringify({ resumeId, s3Key, fileSize }),
+        }),
+
+    /**
+     * Get a short-lived presigned GET URL to view/download a resume.
+     * key format: resumes/{userId}/{filename}
+     */
+    getDownloadUrl: (key: string) =>
+        apiFetch(`/api/aws/resume/download?key=${encodeURIComponent(key)}`),
+
+    /**
+     * Delete a resume object from S3.
+     * Backend enforces that the key belongs to the authenticated user.
+     */
+    deleteResume: (key: string) =>
+        apiFetch(`/api/aws/resume/delete?key=${encodeURIComponent(key)}`, { method: 'DELETE' }),
+
+    /**
+     * Check whether the private S3 resume bucket is reachable from the server.
+     */
+    getStatus: () => apiFetch('/api/aws/resume/status'),
+};
+
 // ==================== S3 FILE MANAGEMENT ====================
 export const s3Api = {
     listFiles: (prefix?: string, limit?: number, token?: string) => {

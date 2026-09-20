@@ -29,6 +29,24 @@ dist-ssr
 npm
 vite_react_shadcn_ts*
 
+# Internal developer notes that may contain credentials or sensitive setup info
+AWS_SECRETS_MANAGER_SETUP.md
+TESTING_LOGIN_PAYMENT.md
+BOOLEAN_TYPE_FIX.md
+IMPLEMENTATION_CHECKLIST.md
+INSTITUTION_SUBSCRIPTION_FIX.md
+PERFORMANCE_FIXES_SUMMARY.md
+PERFORMANCE_OPTIMIZATION.md
+PRESENTATION_GUIDE.md
+PROCTORING_SETUP.md
+PROJECT_COMPLETE_SUMMARY.md
+QUICK_START.md
+SUBSCRIPTION_SYSTEM_IMPLEMENTATION.md
+SUPABASE_MIGRATION_GAP_ANALYSIS.md
+SYSTEM_ARCHITECTURE_VISUAL.md
+TESTING_GUIDE.md
+VidyaMitra_Interview_Prep.md
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

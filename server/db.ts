@@ -319,6 +319,20 @@ function initializeSchema() {
 
   `);
 
+  // Safely add s3_key, content_type, file_size to resumes table (S3 integration)
+  const resumeColumns = database.pragma('table_info(resumes)') as Array<{ name: string }>;
+  const resumeColNames = new Set(resumeColumns.map(c => c.name));
+  const newResumeCols: [string, string][] = [
+    ['s3_key',       'TEXT'],
+    ['content_type', 'TEXT'],
+    ['file_size',    'INTEGER'],
+  ];
+  for (const [col, type] of newResumeCols) {
+    if (!resumeColNames.has(col)) {
+      database.exec(`ALTER TABLE resumes ADD COLUMN ${col} ${type}`);
+    }
+  }
+
   // Safely add columns to users table if they don't exist yet
   const userColumns = database.pragma('table_info(users)') as Array<{ name: string }>;
   const columnNames = new Set(userColumns.map(c => c.name));
